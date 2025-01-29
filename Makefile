@@ -18,7 +18,11 @@ env_shell:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_ROOT) bash
 
 build_sdk:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) make -C sdk
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
+		cmake -B cmake_build
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
+		cmake --build cmake_build
 
 build_core:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(ROOT_USER) \
