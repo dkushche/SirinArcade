@@ -64,4 +64,4 @@ help:
 	@echo -e "\tbuild_core: build arcade console core"
 
 	@echo "> Clean:"
-	@echo -e "\tclean: "
+	@echo -e "\tclean: clean build artifacts to build again"
