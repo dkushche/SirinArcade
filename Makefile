@@ -16,7 +16,7 @@ build_env:
 	@echo "Environment ready to work"
 
 env_shell:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_ROOT) bash
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade --privileged=true --device=/dev/snd:/dev/snd -v ./access_point:/access_point $(IMAGE) $(BUILDER_ROOT) bash
 
 build_sdk:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \

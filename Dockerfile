@@ -6,6 +6,9 @@ RUN apt-get update &&                             \
                        build-essential            \
                        libncurses5-dev            \
                        cmake                      \
+                       libasound2-dev             \
+                       alsa-utils                 \
+                       libsndfile1-dev            \
     && apt-get clean
 
 RUN if ! id 1000 >/dev/null 2>&1; then adduser --uid 1000 --home /home/ubuntu ubuntu; fi

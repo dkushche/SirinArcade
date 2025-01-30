@@ -11,7 +11,7 @@ include_directories(${CURSES_INCLUDE_DIR})
 include(GNUInstallDirs)
 
 set(SRC
-	src/render.c
+	src/render.c src/sound.c
 )
 add_library(${PROJECT_NAME} SHARED ${SRC})
 target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
