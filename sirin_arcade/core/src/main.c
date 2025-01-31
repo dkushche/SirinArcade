@@ -8,7 +8,7 @@
 #include <math.h>
 #include <sndfile.h>
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 4096 * 2
 
 int main(void)
 {
@@ -42,7 +42,7 @@ int main(void)
     }
     int channels = sfinfo.channels;
     unsigned int rate = (unsigned int) sfinfo.samplerate;
-    short buffer[BUFFER_SIZE * channels]; // Буфер для зчитування аудіо
+    short *buffer = malloc(BUFFER_SIZE * channels * sizeof(short)); // Буфер для зчитування аудіо
 
     // Встановлюємо параметри
     snd_pcm_hw_params_alloca(&params);
@@ -54,7 +54,10 @@ int main(void)
     snd_pcm_hw_params_set_channels(pcm_handle, params, channels);  // 2 канали (стерео)
     snd_pcm_hw_params_set_period_size_near(pcm_handle, params, &frames, &dir);
     snd_pcm_hw_params(pcm_handle, params);
-
+    if (snd_pcm_hw_params(pcm_handle, params) < 0) {
+        fprintf(stderr, "Error setting HW params\n");
+        exit(1);
+    }
     // Відтворення звуку
     while (1) {
         int read_frames = sf_read_short(sndfile, buffer, frames * channels);
@@ -65,13 +68,15 @@ int main(void)
         }
 
         // Відправляємо дані до пристрою
-        if (snd_pcm_writei(pcm_handle, buffer, read_frames / channels) == -EPIPE) {
-            fprintf(stderr, "XRUN occurred\n");
-            snd_pcm_prepare(pcm_handle);
-        } else if (snd_pcm_writei(pcm_handle, buffer, read_frames / channels) < 0) {
-            fprintf(stderr, "Error writing to PCM device\n");
-            break;
-        }
+        int err = snd_pcm_writei(pcm_handle, buffer, read_frames / channels);
+		if (err == -EPIPE) {
+    		fprintf(stderr, "XRUN occurred\n");
+    		snd_pcm_prepare(pcm_handle);
+		} else if (err < 0) {
+    		fprintf(stderr, "Error writing to PCM device: %s\n", snd_strerror(err));
+    		break;
+		}
+
     }
     sf_close(sndfile);
     snd_pcm_close(pcm_handle);
