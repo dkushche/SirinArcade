@@ -7,38 +7,30 @@
 #include <alsa/asoundlib.h>
 #include <math.h>
 #include <sndfile.h>
+#include <time.h>
+#include <stdio.h>
 
-#define BUFFER_SIZE 4096 * 2
+#define BUFFER_SIZE 4096
 
-int main(void)
-{
-    screen_t *screen = initialze_screen();
-    if (screen == NULL)
-    {
-        return 1;
-    }
-
-    pixel_t *pixel = create_pixel('X', ARCADE_YELLOW);
-
-    // to move into lib
+typedef struct {
     snd_pcm_t *pcm_handle;
+} thread_arg_t;
+
+void* hell(void *arg) {
+	thread_arg_t *data = (thread_arg_t *)arg;
+
+    snd_pcm_t *pcm_handle = data->pcm_handle;
     snd_pcm_hw_params_t *params;
     int dir;
 
     snd_pcm_uframes_t frames = BUFFER_SIZE;
-
-    // Відкриваємо пристрій
-    if (snd_pcm_open(&pcm_handle, "hw:0,0", SND_PCM_STREAM_PLAYBACK, 0) < 0) {
-        fprintf(stderr, "Cannot open audio device\n");
-        exit(1);
-    }
 
     //
     SF_INFO sfinfo;
     SNDFILE *sndfile = sf_open("/access_point/example.wav", SFM_READ, &sfinfo);
     if (!sndfile) {
         fprintf(stderr, "Не вдалося відкрити файл: %s\n", sf_strerror(NULL));
-        return 1;
+        exit(1);
     }
     int channels = sfinfo.channels;
     unsigned int rate = (unsigned int) sfinfo.samplerate;
@@ -58,12 +50,31 @@ int main(void)
         fprintf(stderr, "Error setting HW params\n");
         exit(1);
     }
+    clock_t start_time;
+    start_time = clock();
+
     // Відтворення звуку
     while (1) {
+        double time_taken = (((double)(clock() - start_time))/CLOCKS_PER_SEC); // in seconds
+        if (time_taken >= 10.0) {
+            start_time = clock();
+            if (sf_seek(sndfile, 0, SEEK_SET) == -1) {
+              fprintf(stderr, "setting audio to start failed \n");
+              exit(0);
+            }
+            memset(buffer, 0, BUFFER_SIZE * channels * sizeof(short));
+            snd_pcm_drop(pcm_handle); // Зупиняємо відтворення
+            int err = snd_pcm_prepare(pcm_handle); // Готуємо пристрій знову
+			if (err < 0) {
+            	fprintf(stderr, "wtf, prepare failed: %s\n", snd_strerror(err));
+            	exit(0);
+            }
+        }
         int read_frames = sf_read_short(sndfile, buffer, frames * channels);
 
         // Якщо кінець файлу, зупиняємо відтворення
         if (read_frames == 0) {
+
             break;
         }
 
@@ -78,11 +89,57 @@ int main(void)
 		}
 
     }
+    free(buffer);
     sf_close(sndfile);
-    snd_pcm_close(pcm_handle);
+    free(arg);
+	return NULL;
+}
+
+int main(void)
+{
+    screen_t *screen = initialze_screen();
+    if (screen == NULL)
+    {
+        return 1;
+    }
+
+    pixel_t *pixel = create_pixel('X', ARCADE_YELLOW);
+
+    // to move into lib
 
 
+    // Відкриваємо пристрій
+    snd_pcm_t *pcm_handle;
+    while (snd_pcm_open(&pcm_handle, "hw:0,0", SND_PCM_STREAM_PLAYBACK, 0) < 0) {
+        fprintf(stderr, "Trying open audio device again\n");
+    }
 
+    pthread_t *thread;
+    thread_arg_t *arg = (thread_arg_t *)malloc(sizeof(thread_arg_t));
+    if (arg == NULL) {
+        perror("Failed to allocate memory");
+        return 1;
+    }
+    arg->pcm_handle = pcm_handle;
+    int result = pthread_create(thread, NULL, hell, (void*)arg);
+    //do not reuse arg, its now for that thread and not anyone else!
+
+	if (result != 0) {
+        // Перевірка на помилку
+        printf("Error creating thread: %d\n", result);
+        return 1;
+    }
+    sleep(5);
+
+    thread_arg_t *arg2 = (thread_arg_t *)malloc(sizeof(thread_arg_t));
+    if (arg2 == NULL) {
+        perror("Failed to allocate memory");
+        return 1;
+    }
+    arg2->pcm_handle = pcm_handle;
+    pthread_t *thread2;
+
+    pthread_create(thread2, NULL, hell, (void*)arg2);
     //
 
     while (1)
@@ -99,6 +156,8 @@ int main(void)
     free(pixel);
 
     free_screen(screen);
+
+    snd_pcm_close(pcm_handle);
 
     return 0;
 }
