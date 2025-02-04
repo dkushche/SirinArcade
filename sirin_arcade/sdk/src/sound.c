@@ -22,6 +22,10 @@ typedef struct {
 	int restart_on_end; // 1 yes, whatever else no
 	atomic_bool stop_rn; // 1 yes
     char* path;
+
+    short *buffer;
+    snd_pcm_t *pcm_handle;
+    SNDFILE *sndfile;
 } thread_arg_t;
 
 void start_playing(void *arg) {
@@ -34,12 +38,14 @@ void start_playing(void *arg) {
     while (snd_pcm_open(&pcm_handle, "default", SND_PCM_STREAM_PLAYBACK, SND_PCM_ASYNC) < 0) {
         sched_yield();
     }
+    given_to_thread_data->pcm_handle = pcm_handle;
 
    	sndfile = sf_open(given_to_thread_data->path, SFM_READ, &sfinfo);
     if (!sndfile) {
         fprintf(stderr, "Failure with file opening\n");
         exit(1);
     }
+    given_to_thread_data->sndfile = sndfile;
 
     int channels = sfinfo.channels;
     unsigned int rate = (unsigned int) sfinfo.samplerate;
@@ -67,9 +73,9 @@ void start_playing(void *arg) {
 	    fprintf(stderr, "Error setting channel count\n");
 	    exit(1);
 	}
-//    snd_pcm_hw_params_set_period_size_near(pcm_handle, params, &frames, &dir);
+	//    snd_pcm_hw_params_set_period_size_near(pcm_handle, params, &frames, &dir);
 
-	printf("Sample rate: %d, Channels: %d, Format: %d\n", sfinfo.samplerate, sfinfo.channels, sfinfo.format);
+	//	printf("Sample rate: %d, Channels: %d, Format: %d\n", sfinfo.samplerate, sfinfo.channels, sfinfo.format);
 
     if (snd_pcm_hw_params(pcm_handle, params) < 0) {
         fprintf(stderr, "Error setting HW params\n");
@@ -77,6 +83,7 @@ void start_playing(void *arg) {
     }
 
     short *buffer = malloc(BUFFER_SIZE * channels * sizeof(short));
+    given_to_thread_data->buffer = buffer;
 
     while (1) {
       	if (atomic_load(&given_to_thread_data->stop_rn) == 1) {
@@ -112,20 +119,23 @@ void start_playing(void *arg) {
 	    }
     }
 
-    free(buffer);
-    sf_close(sndfile);
-    free(arg);
-    snd_pcm_close(pcm_handle);
+    // todo potentially add in thread args somethink like "bool auto_free_after_end"
+    //free(buffer);
+	//sf_close(sndfile);
+	//free(arg);
+	//snd_pcm_close(pcm_handle);
+    return NULL;
 }
 
-void *play_wave(char *path, int cycled) {
+int play_wave(char *path, int cycled, void **sound) {
 	pthread_t thread;
     thread_arg_t *arg;
 
+    *sound = NULL;
     arg = (thread_arg_t *)malloc(sizeof(thread_arg_t));
     if (arg == NULL) {
         perror("Failed to allocate memory");
-        return NULL;
+        return 1;
     }
 
     arg->restart_on_end = cycled;
@@ -136,16 +146,30 @@ void *play_wave(char *path, int cycled) {
 
 	if (result != 0) {
         printf("Error creating thread: %d\n", result);
-        return NULL;
+        return 2;
     }
 
-    if (cycled) {
-      	return (void*)arg;
-    } else {
-     	return NULL;
-    }
+	*sound = arg;
+
+    return 0;
 }
 
-void stop_wave(void *sound) { // to call only once for cycled waves, or else... write after free
-	atomic_store(&((thread_arg_t*)sound)->stop_rn, 1);
+int free_wave(void **sound) {
+	if (sound == NULL) {
+        printf("error: you was saved from null pointer dereferencing in free_wave function");
+    	return 1;
+	}
+    if (*sound == NULL) {
+        printf("error: you was saved from null pointer dereferencing in free_wave function");
+    	return 2;
+	}
+
+	thread_arg_t* data = (thread_arg_t*)(*sound);
+
+	atomic_store(&(data->stop_rn), 1);
+    //todo potentially join to thread
+	free(data->buffer);
+	sf_close(data->sndfile);
+	snd_pcm_close(data->pcm_handle);
+    free(data);
 }
