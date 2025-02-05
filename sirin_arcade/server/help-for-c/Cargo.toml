@@ -1,0 +1,10 @@
+[package]
+name = "help-for-c"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+communication-data = { path = "../communication-data" }
+
+[lib]
+crate-type = ["staticlib"]

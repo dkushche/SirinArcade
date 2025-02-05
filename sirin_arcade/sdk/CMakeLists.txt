@@ -10,11 +10,14 @@ include_directories(${CURSES_INCLUDE_DIR})
 
 include(GNUInstallDirs)
 
+set(HELP_FOR_C_LIB /sirin_arcade/server/help-for-c/target/release/libhelp_for_c.a)
+
 set(SRC
 	src/render.c
 )
 add_library(${PROJECT_NAME} SHARED ${SRC})
-target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${CURSES_LIBRARIES}
+		-Wl,--whole-archive ${HELP_FOR_C_LIB} -Wl,--no-whole-archive)
 
 target_include_directories(
 	${PROJECT_NAME}
