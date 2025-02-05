@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(SirinArcade VERSION 0.1 DESCRIPTION "Sirin Arcade core application")
+project(SirinArcade VERSION 0.1 DESCRIPTION "Sirin Arcade client application")
 
 set(DESTDIR_PATH "" CACHE STRING "Path to target system root")
 

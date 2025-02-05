@@ -28,26 +28,33 @@ build_sdk:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
 
-build_core:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+build_client:
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake \
 			-DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot \
 			-DSIRINARCADESDK_LIBRARIES=/sirin_arcade/sdk/cmake_build/sysroot/usr/lib/libSirinarcadeSDK.so \
 			-DSIRINARCADESDK_INCLUDE_DIRS=/sirin_arcade/sdk/cmake_build/sysroot/usr/include \
 			-B cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake --build cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
+
+build_server:
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server $(IMAGE) $(BUILDER_USER) \
+		cargo build
 
 clean:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
-		rm -rf core/cmake_build
+		rm -rf client/cmake_build
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
 		rm -rf sdk/cmake_build
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
+		rm -rf server/target
 
 help:
 	@echo "Usage: make COMMAND"
@@ -61,7 +68,8 @@ help:
 
 	@echo "> Build:"
 	@echo -e "\tbuild_sdk: build arcade console SDK"
-	@echo -e "\tbuild_core: build arcade console core"
+	@echo -e "\tbuild_client: build arcade console client"
+	@echo -e "\tbuild_client: build arcade console server"
 
 	@echo "> Clean:"
 	@echo -e "\tclean: clean build artifacts to build again"
