@@ -1,53 +1,30 @@
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <sirin_arcade/render.h>
 #include <sirin_arcade/sound.h>
 
-//to remove
-#include <alsa/asoundlib.h>
-#include <math.h>
-#include <sndfile.h>
-#include <time.h>
-#include <stdio.h>
-#include <stdatomic.h>
-#include <sched.h>
-
-/**
-* ~/.asoundrc
-
-pcm.!default {
-	type plug
-	slave.pcm "dmixer"
-}
-
-pcm.dmixer  {
- 	type dmix
- 	ipc_key 1024
-	slave.pcm "hw:0,0"
-}
-
-ctl.dmixer {
-	type hw
-	card 0
-}
-*/
-
 int main(void)
 {
+    int res = 0;
+
     screen_t *screen = initialze_screen();
     if (screen == NULL)
     {
-        return 1;
+        res = 1;
+        goto end;
     }
 
     pixel_t *pixel = create_pixel('X', ARCADE_YELLOW);
 
-	void *haha;
-    int result = play_wave("/access_point/example.wav", 1, &haha);
-    if (result != 0) {
-      	printf("got error from play_wave\n");
-        exit(1);
+    void *haha;
+    int result = play_wave("/sirin_arcade/core/assets/intro.wav", true, &haha);
+    if (result != 0)
+    {
+        fprintf(stderr, "Got error from play_wave\n");
+        res = 2;
+        goto audio_err;
     }
 
     while (1)
@@ -61,9 +38,12 @@ int main(void)
         render(screen);
     }
 
-	free_wav(&haha);
+    free_wave(&haha);
     free(pixel);
 
+audio_err:
     free_screen(screen);
-    return 0;
+
+end:
+    return res;
 }

@@ -1,3 +1,6 @@
+#ifndef RENDER_H
+#define RENDER_H
+
 #include <stdint.h>
 
 typedef enum {
@@ -23,3 +26,5 @@ typedef struct screen {
     uint8_t active_buffer;
     pixel_t *buffers[2];
 } screen_t;
+
+#endif // RENDER_H
