@@ -1,3 +1,6 @@
+#ifndef RENDER_H
+#define RENDER_H
+
 #include <stdint.h>
 
 typedef enum {
@@ -27,3 +30,5 @@ screen_t *initialze_screen(void);
 int free_screen(screen_t *screen);
 
 void render(screen_t *screen);
+
+#endif // RENDER_H

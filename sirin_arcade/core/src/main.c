@@ -1,17 +1,31 @@
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <sirin_arcade/render.h>
+#include <sirin_arcade/sound.h>
 
 int main(void)
 {
+    int res = 0;
+
     screen_t *screen = initialze_screen();
     if (screen == NULL)
     {
-        return 1;
+        res = 1;
+        goto end;
     }
 
     pixel_t *pixel = create_pixel('X', ARCADE_YELLOW);
+
+    void *haha;
+    int result = play_wave("/sirin_arcade/core/assets/intro.wav", true, &haha);
+    if (result != 0)
+    {
+        fprintf(stderr, "Got error from play_wave\n");
+        res = 2;
+        goto audio_err;
+    }
 
     while (1)
     {
@@ -24,9 +38,12 @@ int main(void)
         render(screen);
     }
 
+    free_wave(&haha);
     free(pixel);
 
+audio_err:
     free_screen(screen);
 
-    return 0;
+end:
+    return res;
 }

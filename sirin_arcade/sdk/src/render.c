@@ -106,10 +106,10 @@ static void _disable_redundant_term_func()
 static int _init_colors()
 {
     if(has_colors() == FALSE)
-	{
+    {
         fprintf(stderr, "Your terminal does not support color\n");
         return -1;
-	}
+    }
 
     start_color();
 
