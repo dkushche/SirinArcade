@@ -13,20 +13,20 @@ include(GNUInstallDirs)
 set(HELP_FOR_C_LIB /sirin_arcade/server/help-for-c/target/release/libhelp_for_c.a)
 
 set(SRC
-	src/render.c
+    src/render.c src/sound.c
 )
 add_library(${PROJECT_NAME} SHARED ${SRC})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${CURSES_LIBRARIES}
 		-Wl,--whole-archive ${HELP_FOR_C_LIB} -Wl,--no-whole-archive)
 
 target_include_directories(
-	${PROJECT_NAME}
-	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public> $<INSTALL_INTERFACE:include/${INCLUDE_SUBDIR}>
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public> $<INSTALL_INTERFACE:include/${INCLUDE_SUBDIR}>
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 install(TARGETS ${PROJECT_NAME}
-	LIBRARY DESTINATION ${DESTDIR_PATH}/usr/lib
+    LIBRARY DESTINATION ${DESTDIR_PATH}/usr/lib
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/public/

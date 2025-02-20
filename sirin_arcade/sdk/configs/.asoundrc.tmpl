@@ -1,0 +1,15 @@
+pcm.!default {
+    type plug
+    slave.pcm "dmixer"
+}
+
+pcm.dmixer  {
+    type dmix
+    ipc_key 1024
+    slave.pcm "hw:${SIRIN_AUDIO_CARD},${SIRIN_AUDIO_SUBDEVICE}"
+}
+
+ctl.dmixer {
+    type hw
+    card ${SIRIN_AUDIO_CARD}
+}
