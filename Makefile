@@ -47,7 +47,7 @@ build_sdk: build_lib_help_for_c
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
 
-build_client: # todo а може й не туду, шо тут змінювать, тільки запустить
+build_client: build_sdk # todo а може й не туду, шо тут змінювать, тільки запустить
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake \
 			-DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot \
@@ -65,14 +65,11 @@ build_server: build_so_logo # але лого він не візьме те, з�
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server $(IMAGE) $(BUILDER_USER) \
 		cargo build --release
 
-
 build_lib_help_for_c:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server/help-for-c $(IMAGE) $(BUILDER_USER) \
-		cargo build
+		cargo build --release
 
-build_so_logo: build_sdk # todo
-	# мабуть не треба бо має бути в сдк + смейк gcc -shared -o libexample.so -fPIC libexample.c ../../../server/help-for-c/target/debug/libhelp_for_c.a
-
+build_so_logo: build_sdk
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/assets/system/logo $(IMAGE) $(BUILDER_USER) \
 		cmake \
 			-DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot \
@@ -86,11 +83,14 @@ build_so_logo: build_sdk # todo
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/assets/system/logo $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
 
-start_example:
-# використати і модифікувати білд клієнта і сервера і додати про сошку (не забуть про про статичне дно шо потребує лібекзампл)
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server $(IMAGE) $(BUILDER_USER) \
-		# хз чи має доступ з цього до assets/system/logo/libexample.so
-		./target/debug/server
+start_example: build_server build_client # todo запустити обидва, писати в файли, вбити за 10 секунд; readme (схема, проверка что все сбилдить все)
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
+		bash -c " \
+		mkdir -p /sirin_arcade/logs && \
+        touch /sirin_arcade/logs/server.log /sirin_arcade/logs/client.log &&\
+		./server/target/release/server > /sirin_arcade/logs/server.log & \
+		./client/cmake_build/SirinArcade > /sirin_arcade/logs/client.log &  \
+		sleep 10"
 
 clean:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \

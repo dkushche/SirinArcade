@@ -105,7 +105,7 @@ struct RunningLibrary {
 impl RunningLibrary {
     fn new(path_from_assets: &str) -> RunningLibrary { // example for path: system/logo/libexample"
         let library = unsafe {
-            Library::new(format!("../assets/{path_from_assets}.so"))
+            Library::new(format!("./assets/{path_from_assets}.so"))
                 .expect("there are no library")
         };
 
