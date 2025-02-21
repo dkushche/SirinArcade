@@ -9,7 +9,6 @@ fn main() {
         .with_crate(crate_dir)
         .with_language(Language::C)
         .with_src("../help-for-c/src/lib.rs")
-        // .with_parse_deps(true)
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("bindings.h");

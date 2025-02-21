@@ -119,7 +119,7 @@ int main(void)
 
 		            if (bytes_received == 0)
 		            {
-			            goto THE_END;
+			            goto the_end;
 		            }
 	            }
 	            printf("%c ", received_message.draw_pixel.pixel_t.character);
@@ -130,7 +130,7 @@ int main(void)
         }
 
 
-    THE_END:
+    the_end:
         close(tcp_sock);
     }
 

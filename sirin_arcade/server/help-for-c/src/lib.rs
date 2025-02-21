@@ -4,5 +4,3 @@ use communication_data::ServerToSoTransitEvent;
 pub extern "C" fn print_server_to_so_transit_event(event: &ServerToSoTransitEvent) {
     println!("{event:?}");
 }
-
-// ЕСЛИ ДВЕ СВИШЕ ЕТОЙ ТО ИНВЕСТИГЕЙТ

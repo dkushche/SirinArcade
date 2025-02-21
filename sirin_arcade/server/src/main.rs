@@ -7,10 +7,10 @@ use std::net::{SocketAddr};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use communication_data::{pixel_t_rust_t, ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType, SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray};
+use communication_data::{ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType, SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray};
 use libloading::Library;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream, UdpSocket};
+use tokio::net::{TcpListener, UdpSocket};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
@@ -25,7 +25,6 @@ struct GameServer {
 
     clients_connections_read_halfs: Arc<Mutex<HashMap<SocketAddr, OwnedReadHalf>>>,
     clients_connections_write_halfs: HashMap<SocketAddr, OwnedWriteHalf>,
-    screen: Arc<Mutex<Option<screen_t>>>,
 
     state: State,
 }
@@ -40,61 +39,6 @@ enum State {
     RunLogoSystemAsset,
     RunMenuSystemAsset,
     RunLobbySystemAsset,
-}
-
-
-struct screen_t {
-    width: u8,
-    height: u8,
-
-    active_buffer: u8,
-    buffers: [Vec<pixel_t_rust_t>; 2],
-}
-
-// struct ScreenUpdate {
-//     positions_and_new_values: Vec<(usize, pixel_t)>,
-// }
-
-// impl ScreenUpdate {
-//     fn new(values: &[Vec<pixel_t>; 2], active_buffer: u8) -> ScreenUpdate {
-//         if active_buffer == 0 {
-//             ScreenUpdate {
-//                 positions_and_new_values: values[0]
-//                     .iter()
-//                     .enumerate()
-//                     .zip(&values[1])
-//                     .filter(|((i, a), b)| a != b)
-//                     .map(|((i, a), b)| (i, *b))
-//                     .collect::<Vec<(usize, pixel_t)>>(),
-//             }
-//         } else if active_buffer == 1 {
-//             ScreenUpdate {
-//                 positions_and_new_values: values[0]
-//                     .iter()
-//                     .enumerate()
-//                     .zip(&values[1])
-//                     .filter(|((i, a), b)| a != b)
-//                     .map(|((i, a), b)| (i, *a))
-//                     .collect::<Vec<(usize, pixel_t)>>(),
-//             }
-//         } else {
-//             panic!("active buffer other that 0 or 1");
-//         }
-//     }
-// }
-
-impl screen_t {
-    fn new(width: u8, height: u8) -> screen_t {
-        screen_t {
-            width,
-            height,
-            active_buffer: 0,
-            buffers: [
-                vec![pixel_t_rust_t::new(' ' as u8, 0 /*??*/); width as usize * height as usize],
-                vec![pixel_t_rust_t::new(' ' as u8, 0 /*??*/); width as usize * height as usize],
-            ],
-        }
-    }
 }
 
 struct RunningLibrary {
@@ -141,7 +85,6 @@ impl GameServer {
 
             clients_connections_read_halfs: Arc::new(Mutex::new(HashMap::new())),
             clients_connections_write_halfs: HashMap::new(),
-            screen: Arc::new(Mutex::new(None)),
             state: State::PendingFirstPlayer,
         }
     }
@@ -189,8 +132,6 @@ impl GameServer {
 
                             self.clients_connections_read_halfs.lock().await.insert(addr, read_half);
                             self.clients_connections_write_halfs.insert(addr, write_half);
-
-                            self.screen = Arc::new(Mutex::new(Some(screen_t::new(width, height))));
                         }
 
                         self.state = RunLogoSystemAsset;
@@ -287,15 +228,12 @@ impl GameServer {
                 //     break;
                 // }
 
-                // todo into make (also help-for-c into libsirinsdk)
-
                 println!("beginning transit so -> client");
 
                 // important: there is a necessity to handle each event (for at least freeing possible pointers passed to server)
                 for event in unsafe { std::slice::from_raw_parts(result.first_element, result.length) } {
                     match event {
                         SoToServerTransitBack::ToClient(so_to_client) => {
-                            // відправити смерду
                             for (_addr, mut write_conn) in self.clients_connections_write_halfs.iter_mut() {
                                 // todo настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
 
