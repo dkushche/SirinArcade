@@ -1,5 +1,5 @@
-#ifndef RENDER_H
-#define RENDER_H
+#ifndef ARCADE_NCURSES_DRAWER_H
+#define ARCADE_NCURSES_DRAWER_H
 
 #include <stdint.h>
 
@@ -27,4 +27,4 @@ typedef struct screen {
     pixel_t *buffers[2];
 } screen_t;
 
-#endif // RENDER_H
+#endif // ARCADE_NCURSES_DRAWER_H

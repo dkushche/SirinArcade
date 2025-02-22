@@ -1,10 +1,12 @@
 [package]
-name = "help-for-c"
+name = "arcade-packets"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-communication-data = { path = "../communication-data" }
+
+[build-dependencies]
+cbindgen = "0.28.0"
 
 [lib]
 crate-type = ["staticlib"]

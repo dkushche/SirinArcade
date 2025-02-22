@@ -1,7 +1,1 @@
-access_point
 .idea
-sirin_arcade/client/cmake-build-debug
-sirin_arcade/server/communication-data/target
-sirin_arcade/server/help-for-c/target
-*.so
-Cargo.lock

@@ -17,14 +17,13 @@ RUN apt-get update &&                             \
 RUN ln -sf /sirin_arcade/sdk/cmake_build/sysroot/usr/lib/libSirinarcadeSDK.so /usr/lib/libSirinarcadeSDK.so
 RUN if ! id 1000 >/dev/null 2>&1; then adduser --uid 1000 --home /home/ubuntu ubuntu; fi
 
-USER ubuntu
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/home/ubuntu/.cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -o rustup-init.sh https://sh.rustup.rs
+RUN gosu 1000 bash rustup-init.sh -y
+
+ENV PATH=/home/ubuntu/.cargo/bin:$PATH
 
 ENV SIRIN_ARCADE_SERVER_PORT=9876
 ENV SIRIN_ARCADE_CLIENT_PORT=6789
-
-USER root
 
 ENV PATH=/sirin_arcade/sdk/cmake_build/sysroot/bin:$PATH
 

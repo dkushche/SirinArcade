@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "private/render.h"
+#include "private/ncurses-drawer.h"
 
 pixel_t *create_pixel(char character, uint8_t color_pair_id)
 {

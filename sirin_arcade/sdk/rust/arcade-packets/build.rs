@@ -8,8 +8,7 @@ fn main() {
     cbindgen::Builder::new()
         .with_crate(crate_dir)
         .with_language(Language::C)
-        .with_src("../help-for-c/src/lib.rs")
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file("bindings.h");
+        .write_to_file("target/arcade-packets.h");
 }

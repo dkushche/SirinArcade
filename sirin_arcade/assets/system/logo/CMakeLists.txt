@@ -5,7 +5,7 @@ set(DESTDIR_PATH "" CACHE STRING "Path to target system root")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -g")
-# fPIC
+
 include_directories(${SIRINARCADESDK_INCLUDE_DIRS})
 
 set(SRC

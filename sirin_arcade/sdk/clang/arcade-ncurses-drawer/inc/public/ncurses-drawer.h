@@ -1,5 +1,5 @@
-#ifndef RENDER_H
-#define RENDER_H
+#ifndef ARCADE_NCURSES_DRAWER_H
+#define ARCADE_NCURSES_DRAWER_H
 
 #include <stdint.h>
 
@@ -31,4 +31,4 @@ int free_screen(screen_t *screen);
 
 void render(screen_t *screen);
 
-#endif // RENDER_H
+#endif // ARCADE_NCURSES_DRAWER_H

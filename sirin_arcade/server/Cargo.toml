@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 libloading = { version = "0.8.6" }
-communication-data = {path = "./communication-data"}
+arcade-packets = {path = "../sdk/rust/arcade-packets/"}
