@@ -37,7 +37,7 @@ run_arcade: build_core
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(ENABLE_SOUND_DEVICE) $(IMAGE) $(BUILDER_ROOT) \
 		bash -c "SirinArcade 2> /sirin_arcade/runtime_error_logs/`date +"%Y-%m-%d-%H-%M-%S"`.log"
 
-build_sdk:
+build_sdk: build_lib_help_for_c
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
 		cmake -DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot -B cmake_build
 
@@ -47,26 +47,60 @@ build_sdk:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
 
-build_core: build_sdk
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+build_client: build_sdk # todo а може й не туду, шо тут змінювать, тільки запустить
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake \
 			-DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot \
 			-DSIRINARCADESDK_LIBRARIES=/sirin_arcade/sdk/cmake_build/sysroot/usr/lib/libSirinarcadeSDK.so \
 			-DSIRINARCADESDK_INCLUDE_DIRS=/sirin_arcade/sdk/cmake_build/sysroot/usr/include \
 			-B cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake --build cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/core $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/client $(IMAGE) $(BUILDER_USER) \
 		cmake --install cmake_build
+
+build_server: build_so_logo # але лого він не візьме те, здаєця...
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server $(IMAGE) $(BUILDER_USER) \
+		cargo build --release
+
+build_lib_help_for_c:
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/server/help-for-c $(IMAGE) $(BUILDER_USER) \
+		cargo build --release
+
+build_so_logo: build_sdk
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/assets/system/logo $(IMAGE) $(BUILDER_USER) \
+		cmake \
+			-DDESTDIR_PATH=/sirin_arcade/sdk/cmake_build/sysroot \
+			-DSIRINARCADESDK_LIBRARIES=/sirin_arcade/sdk/cmake_build/sysroot/usr/lib/libSirinarcadeSDK.so \
+			-DSIRINARCADESDK_INCLUDE_DIRS=/sirin_arcade/sdk/cmake_build/sysroot/usr/include \
+			-B cmake_build
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/assets/system/logo $(IMAGE) $(BUILDER_USER) \
+		cmake --build cmake_build
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/assets/system/logo $(IMAGE) $(BUILDER_USER) \
+		cmake --install cmake_build
+
+start_example: build_server build_client # todo запустити обидва, писати в файли, вбити за 10 секунд; readme (схема, проверка что все сбилдить все)
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
+		bash -c " \
+		mkdir -p /sirin_arcade/logs && \
+        touch /sirin_arcade/logs/server.log /sirin_arcade/logs/client.log &&\
+		./server/target/release/server > /sirin_arcade/logs/server.log & \
+		./client/cmake_build/SirinArcade > /sirin_arcade/logs/client.log &  \
+		sleep 10"
 
 clean:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
-		rm -rf core/cmake_build
+		rm -rf client/cmake_build
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
 		rm -rf sdk/cmake_build
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(IMAGE) $(BUILDER_USER) \
+		rm -rf server/target
 
 help:
 	@echo "Usage: make COMMAND"
@@ -82,7 +116,8 @@ build image which then will be used to build and run everything"
 
 	@echo "> Build:"
 	@echo -e "\tbuild_sdk: build arcade console SDK"
-	@echo -e "\tbuild_core: build arcade console core"
+	@echo -e "\tbuild_client: build arcade console client"
+	@echo -e "\tbuild_server: build arcade console server"
 
 	@echo "> Clean:"
 	@echo -e "\tclean: clean build artifacts to build again"
