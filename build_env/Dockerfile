@@ -22,12 +22,12 @@ RUN gosu 1000 bash rustup-init.sh -y
 
 ENV PATH=/home/ubuntu/.cargo/bin:$PATH
 
-ENV SIRIN_ARCADE_SERVER_PORT=9876
-ENV SIRIN_ARCADE_CLIENT_PORT=6789
+ENV SIRIN_ARCADES_SERVER_PORT=9876
+ENV SIRIN_ARCADES_CLIENT_PORT=6789
 
-ENV PATH=/sirin_arcade/sdk/cmake_build/sysroot/bin:$PATH
+ENV PATH=/sirin_arcades/sdk/cmake_build/sysroot/bin:$PATH
 
-VOLUME /sirin_arcade
+VOLUME /sirin_arcades
 
 ARG SIRIN_AUDIO_CARD
 ARG SIRIN_AUDIO_SUBDEVICE
@@ -38,6 +38,7 @@ RUN test -n "$SIRIN_AUDIO_SUBDEVICE" # No Audio Subdevice set
 ENV SIRIN_AUDIO_CARD=${SIRIN_AUDIO_CARD}
 ENV SIRIN_AUDIO_SUBDEVICE=${SIRIN_AUDIO_SUBDEVICE}
 
-COPY sirin_arcade/sdk/configs/.asoundrc.tmpl /root/.asoundrc.tmpl
+COPY build_utils/rln /bin
+COPY sirin_arcades/sdk/configs/.asoundrc.tmpl /root/.asoundrc.tmpl
 
 RUN envsubst < /root/.asoundrc.tmpl > /root/.asoundrc

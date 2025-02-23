@@ -1,9 +1,9 @@
-$(SIRIN_ARCADE_BUILD_MODULE)
+$(SIRIN_ARCADES_BUILD_MODULE)
 
 HELP_MESSAGE += "> Build Environment:\n"
 HELP_MESSAGE += "\t* rebuild_env: recreate environment for building and running SirinArcade\n"
-HELP_MESSAGE += "\t* clean_env: clean SirinArcade environment\n"
-HELP_MESSAGE += "\t* env_shell: enter SirinArcade environment; Default Root to run commands as user execute gosu 1000\n"
+HELP_MESSAGE += "\t* clean_env: clean Sirin Arcades build environment\n"
+HELP_MESSAGE += "\t* env_shell: enter Sirin Arcades build environment; Default Root to run commands as user execute gosu 1000\n"
 HELP_MESSAGE += "\n"
 
 .PHONY:         \
@@ -43,4 +43,4 @@ rebuild_env: clean_env $(STAMP_DIR)/.build_env
 
 
 env_shell: $(STAMP_DIR)/.build_env
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade $(ENABLE_SOUND_DEVICE) $(IMAGE) $(BUILDER_ROOT) bash
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades $(ENABLE_SOUND_DEVICE) $(IMAGE) $(BUILDER_ROOT) bash
