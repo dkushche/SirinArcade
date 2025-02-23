@@ -32,6 +32,7 @@ endif
 	docker build \
 		--build-arg SIRIN_AUDIO_CARD=$(SIRIN_AUDIO_CARD) \
 		--build-arg SIRIN_AUDIO_SUBDEVICE=$(SIRIN_AUDIO_SUBDEVICE) \
+		-f build_env/Dockerfile \
 		-t $(IMAGE) .
 
 	$(call create_stamp,$@)

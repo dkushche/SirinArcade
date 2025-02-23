@@ -1,12 +1,13 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include <sirin_arcade/render.h>
-
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <memory.h>
-#include "../../server/communication-data/bindings.h" // problem
+
+#include <ncurses-drawer.h>
+#include <arcade-packets.h>
+
 
 int main(void)
 {
@@ -15,7 +16,8 @@ int main(void)
 
     char response[1024];
 
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
         perror("socket creation failed");
         exit(0);
     }
@@ -25,7 +27,8 @@ int main(void)
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(9877);
 
-    if (bind(sock, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(sock, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
         perror("bind failed");
         close(sock);
         exit(0);
@@ -38,7 +41,8 @@ int main(void)
         socklen_t len = sizeof(sender);
         ssize_t n = recvfrom(sock, response, 1024 - 1, 0,
                              (struct sockaddr *)&sender, &len);
-        if (n < 0) {
+        if (n < 0)
+        {
             perror("recvfrom failed");
             exit(0);
         }
@@ -55,7 +59,8 @@ int main(void)
         close(sock);
 
 		int tcp_sock;
-        if ((tcp_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        if ((tcp_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
             perror("TCP socket creation failed");
             exit(0);
         }
@@ -66,7 +71,8 @@ int main(void)
         tcp_server_addr.sin_port = htons(9876);
         tcp_server_addr.sin_addr.s_addr = sender.sin_addr.s_addr;
 
-        if (connect(tcp_sock, (struct sockaddr *)&tcp_server_addr, sizeof(tcp_server_addr)) < 0) {
+        if (connect(tcp_sock, (struct sockaddr *)&tcp_server_addr, sizeof(tcp_server_addr)) < 0)
+        {
             perror("TCP connection failed");
             close(tcp_sock);
             exit(0);
@@ -74,7 +80,8 @@ int main(void)
 
         unsigned char message[2] = {240, 30};
 
-        if (send(tcp_sock, message, sizeof(message), 0) < 0) {
+        if (send(tcp_sock, message, sizeof(message), 0) < 0)
+        {
             perror("send failed");
             close(tcp_sock);
             exit(0);
@@ -90,8 +97,10 @@ int main(void)
 
 		int yeah = 0;
         while (1){
-          	if (yeah == 0) {
-          		if (send(tcp_sock, &next_message, sizeof(next_message), 0) < 0) {
+          	if (yeah == 0)
+            {
+          		if (send(tcp_sock, &next_message, sizeof(next_message), 0) < 0)
+                {
             		perror("send failed");
             		close(tcp_sock);
             		exit(0);

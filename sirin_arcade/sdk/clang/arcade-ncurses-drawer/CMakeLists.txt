@@ -11,6 +11,7 @@ set(SRC
     src/ncurses-drawer.c
 )
 
-add_library(${PROJECT_NAME} STATIC ${SRC})
+add_library(${PROJECT_NAME} SHARED ${SRC})
 
+target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)

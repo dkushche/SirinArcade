@@ -7,7 +7,10 @@ use std::net::{SocketAddr};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use arcade_packets::{ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType, SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray};
+use arcade_packets::ap_types::{
+    ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType,
+    SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray
+};
 use libloading::Library;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, UdpSocket};

@@ -30,7 +30,7 @@ $(STAMP_DIR)/.acrade_ncurses_drawer: $(STAMP_DIR)/.build_env
 		mkdir out
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/clang/arcade-ncurses-drawer/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../cmake_build/libarcade_ncurses_drawer.a
+		ln -sf ../cmake_build/libarcade_ncurses_drawer.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/clang/arcade-ncurses-drawer/out $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../inc/public/ncurses-drawer.h
@@ -48,8 +48,8 @@ build_arcade_ncurses_drawer: $(STAMP_DIR)/.acrade_ncurses_drawer
 
 
 install_arcade_ncurses_drawer_in_sirin_arcade_out:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/static $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../../clang/arcade-ncurses-drawer/out/libarcade_ncurses_drawer.a
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/sublibs $(IMAGE) $(BUILDER_USER) \
+		ln -sf ../../clang/arcade-ncurses-drawer/out/libarcade_ncurses_drawer.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/include $(IMAGE) $(BUILDER_USER)   \
 		ln -sf ../../clang/arcade-ncurses-drawer/out/ncurses-drawer.h

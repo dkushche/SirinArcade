@@ -12,9 +12,9 @@ RUN apt-get update &&                             \
                        libsndfile1-dev            \
                        gettext-base               \
                        nano                       \
+                       busybox                    \
     && apt-get clean
 
-RUN ln -sf /sirin_arcade/sdk/cmake_build/sysroot/usr/lib/libSirinarcadeSDK.so /usr/lib/libSirinarcadeSDK.so
 RUN if ! id 1000 >/dev/null 2>&1; then adduser --uid 1000 --home /home/ubuntu ubuntu; fi
 
 RUN curl --proto '=https' --tlsv1.2 -o rustup-init.sh https://sh.rustup.rs

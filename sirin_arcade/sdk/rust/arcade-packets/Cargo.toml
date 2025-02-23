@@ -9,4 +9,4 @@ edition = "2021"
 cbindgen = "0.28.0"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["rlib", "cdylib"]

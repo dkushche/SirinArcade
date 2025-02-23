@@ -30,7 +30,7 @@ $(STAMP_DIR)/.acrade_alsa_player: $(STAMP_DIR)/.build_env
 		mkdir out
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/clang/arcade-alsa-player/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../cmake_build/libarcade_alsa_player.a
+		ln -sf ../cmake_build/libarcade_alsa_player.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/clang/arcade-alsa-player/out $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../inc/alsa-player.h
@@ -48,8 +48,8 @@ build_arcade_alsa_player: $(STAMP_DIR)/.acrade_alsa_player
 
 
 install_arcade_alsa_player_in_sirin_arcade_out:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/static $(IMAGE) $(BUILDER_USER)   \
-		ln -sf ../../clang/arcade-alsa-player/out/libarcade_alsa_player.a
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/sublibs $(IMAGE) $(BUILDER_USER)   \
+		ln -sf ../../clang/arcade-alsa-player/out/libarcade_alsa_player.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/include $(IMAGE) $(BUILDER_USER)   \
 		ln -sf ../../clang/arcade-alsa-player/out/alsa-player.h

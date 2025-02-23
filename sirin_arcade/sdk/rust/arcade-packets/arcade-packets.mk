@@ -30,7 +30,7 @@ $(STAMP_DIR)/.acrade_packets: $(STAMP_DIR)/.build_env
 		ln -sf ../target/arcade-packets.h
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/rust/arcade-packets/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../target/debug/libarcade_packets.a
+		ln -sf ../target/debug/libarcade_packets.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/rust/arcade-packets/out $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../target/debug/libarcade_packets.rlib
@@ -48,8 +48,11 @@ build_arcade_packets: $(STAMP_DIR)/.acrade_packets
 
 
 install_arcade_packets_in_sirin_arcade_out:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/static $(IMAGE) $(BUILDER_USER)   \
-		ln -sf ../../rust/arcade-packets/out/libarcade_packets.a
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/sublibs $(IMAGE) $(BUILDER_USER)   \
+		ln -sf ../../rust/arcade-packets/out/libarcade_packets.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/include $(IMAGE) $(BUILDER_USER)   \
 		ln -sf ../../rust/arcade-packets/out/arcade-packets.h
+
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcade/sdk/out/rust $(IMAGE) $(BUILDER_USER)   \
+		ln -sf ../../rust/arcade-packets
