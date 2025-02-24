@@ -49,7 +49,8 @@ clean: cleanup
 build: $(STAMP_DIR)/.sirin_arcades
 
 
-fclean:           \
+fclean:            \
+	clean          \
 	sdk_fclean     \
 	clients_fclean \
 	arcades_fclean \
