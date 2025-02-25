@@ -44,15 +44,19 @@ enum State {
     RunLobbySystemAsset,
 }
 
+const SYSTEM_ARCADES_LOGO_PATH: &str = "liblogo_arcade";
+const SYSTEM_ARCADES_MENU_PATH: &str = "libmenu_arcade";
+const SYSTEM_ARCADES_LOBBY_PATH: &str = "liblobby_arcade";
+
 struct RunningLibrary {
     library: Library,
     game_frame_fn: unsafe extern "C" fn(first_event: *const ServerToSoTransitEvent, length: usize) -> SoToServerTransitBackArray,
 }
 
 impl RunningLibrary {
-    fn new(path_from_assets: &str) -> RunningLibrary { // example for path: system/logo/libexample"
+    fn new(assets_dir: &str, path_from_assets: &str) -> RunningLibrary { // example for path: system/logo/libexample"
         let library = unsafe {
-            Library::new(format!("./assets/{path_from_assets}.so"))
+            Library::new(format!("{assets_dir}/{path_from_assets}.so"))
                 .expect("there are no library")
         };
 
@@ -160,7 +164,7 @@ impl GameServer {
     async fn handle_run_logo_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunLogoSystemAsset = &self.state {
             //todo перестворити beacon з новим width;height;game_name
-            let lib = RunningLibrary::new("system/logo/cmake_build/libSirinSystemLogo");
+            let lib = RunningLibrary::new(self.assets_dir.as_str(), SYSTEM_ARCADES_LOGO_PATH);
             let clients_events_buf: Arc<Mutex<Vec<ServerToSoTransitEvent>>> = Arc::new(Mutex::new(Vec::new()));
 
             {
@@ -282,15 +286,11 @@ impl GameServer {
 
 #[tokio::main]
 async fn main() {
-    let server_port = String::from("9876");
-    // env::var("SIRIN_ARCADE_SERVER_PORT").expect("SIRIN_ARCADE_SERVER_PORT must be set");
+    let server_port = env::var("SIRIN_ARCADE_SERVER_PORT").expect("SIRIN_ARCADE_SERVER_PORT must be set");
 
-    let client_port =
-        // env::var("SIRIN_ARCADE_CLIENT_PORT").expect("SIRIN_ARCADE_CLIENT_PORT must be set");
-        String::from("9877");
+    let client_port = env::var("SIRIN_ARCADE_CLIENT_PORT").expect("SIRIN_ARCADE_CLIENT_PORT must be set");
 
-    let assets_dir = String::from("../assets");
-    // env::var("SIRIN_ARCADE_ASSETS_DIR").expect("SIRIN_ARCADE_ASSETS_DIR must be set");
+    let assets_dir = env::var("SIRIN_ARCADE_ASSETS_DIR").expect("SIRIN_ARCADE_ASSETS_DIR must be set");
 
     let mut server = GameServer::new(server_port, client_port, assets_dir).await;
 
