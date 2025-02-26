@@ -259,6 +259,7 @@ impl GameServer {
                 }
                 println!("transit so -> client ended");
             }
+            //todo free global_array in so
             self.state = RunMenuSystemAsset;
             Ok(())
         } else {
