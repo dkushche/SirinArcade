@@ -12,6 +12,7 @@ RUN apt-get update &&                             \
                        libsndfile1-dev            \
                        gettext-base               \
                        nano                       \
+                       libcurl4-gnutls-dev        \
                        busybox                    \
     && apt-get clean
 

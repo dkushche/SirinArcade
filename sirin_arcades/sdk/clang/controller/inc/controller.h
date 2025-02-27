@@ -11,6 +11,6 @@ typedef enum {
     END,
   } keys;
 
-void add_to_array(char element);
+char *get_keys(void);
 
 #endif // CONTROLLER_H

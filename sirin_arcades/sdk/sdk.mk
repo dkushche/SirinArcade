@@ -9,6 +9,7 @@ HELP_MESSAGE += "\n"
 include sirin_arcades/sdk/clang/sound-player/sound-player.mk
 include sirin_arcades/sdk/clang/terminal-drawer/terminal-drawer.mk
 include sirin_arcades/sdk/clang/controller/controller.mk
+include sirin_arcades/sdk/clang/resource_loader/resource_loader.mk
 include sirin_arcades/sdk/rust/events-bus/events-bus.mk
 
 HELP_MESSAGE += "\n"
@@ -30,6 +31,7 @@ sdk_cleanup:
 $(STAMP_DIR)/.sdk: $(STAMP_DIR)/.sdk_terminal_drawer \
 				   $(STAMP_DIR)/.sdk_sound_player    \
 				   $(STAMP_DIR)/.sdk_controller      \
+				   $(STAMP_DIR)/.sdk_resource_loader \
 				   $(STAMP_DIR)/.sdk_events_bus
 
 	$(MAKE) sdk_cleanup
@@ -40,6 +42,7 @@ $(STAMP_DIR)/.sdk: $(STAMP_DIR)/.sdk_terminal_drawer \
 	$(MAKE) sdk_sound_player_install
 	$(MAKE) sdk_terminal_drawer_install
 	$(MAKE) sdk_controller_install
+	$(MAKE) sdk_resource_loader_install
 	$(MAKE) sdk_events_bus_install
 
 	@echo "Sirin Arcades SDK ready! 🚀"
@@ -59,6 +62,7 @@ sdk_fclean:                   \
 	sdk_terminal_drawer_clean \
 	sdk_sound_player_clean    \
 	sdk_controller_clean      \
+	sdk_resource_loader_clean \
 	sdk_events_bus_clean
 
 
