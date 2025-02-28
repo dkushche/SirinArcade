@@ -1,12 +1,14 @@
 use crate::State::{
-    PendingFirstPlayer, RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset,
+    RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset,
 };
 use std::collections::{HashMap};
 use std::env;
+use std::ffi::c_void;
 use std::net::{SocketAddr};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
+use libc::free;
 use events_bus::ap_types::{
     ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType,
     SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray
@@ -133,7 +135,7 @@ impl GameServer {
                     Ok(WINDOW_RESOLUTION_SIZE) => {
                         let width = buffer[0];
                         let height = buffer[1];
-                        println!("{width}, {height}");;
+                        println!("{width}, {height}");
                         {
                             let (read_half, write_half) = tcp_stream.into_split();
 
@@ -145,7 +147,7 @@ impl GameServer {
 
                         break;
                     }
-                    Ok(n) => {
+                    Ok(_n) => {
                         todo!("this match arm represents possibility of sending something with less size than needed (1 at the moment this comment was written...)")
                     }
                     Err(e) => {
@@ -217,7 +219,7 @@ impl GameServer {
                 }
             }
 
-
+            let mut so_to_server_transit_events = None;
             loop {
                 println!("sending events from clients to so");
                 let result = {
@@ -230,10 +232,9 @@ impl GameServer {
                     println!("{copy:?}");
                     unsafe { (lib.game_frame_fn)(copy.as_ptr(), copy.len()) }
                 };
-
-                // if result == null() {
-                //     break;
-                // }
+                if so_to_server_transit_events.is_none() {
+                    so_to_server_transit_events = Some(result.first_element);
+                }
 
                 println!("beginning transit so -> client");
 
@@ -241,15 +242,15 @@ impl GameServer {
                 for event in unsafe { std::slice::from_raw_parts(result.first_element, result.length) } {
                     match event {
                         SoToServerTransitBack::ToClient(so_to_client) => {
-                            for (_addr, mut write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                                // todo настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
+                            for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                                // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
 
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
                                 unsafe { write_conn.write_all(std::slice::from_raw_parts(so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
                                 println!("sent so to client ");
                             }
                         }
-                        SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(state)) => {
+                        SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
                             // idk
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::RememberGame { path }) => {
@@ -259,7 +260,7 @@ impl GameServer {
                 }
                 println!("transit so -> client ended");
             }
-            //todo free global_array in so
+            unsafe { free(so_to_server_transit_events.unwrap() as *mut c_void); }
             self.state = RunMenuSystemAsset;
             Ok(())
         } else {

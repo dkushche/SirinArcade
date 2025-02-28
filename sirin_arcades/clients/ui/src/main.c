@@ -18,61 +18,57 @@ int main(void)
         return 1;
     }
 
-//    void *busclientconnection = connect_to_bus();
+    void *busclientconnection = connect_to_bus();
 
-//    send_resolution(busclientconnection, 240, 30); // possibly failed
-//
-//    ClientToServerEvent next_message = {
-//        .tag = PressedButton22222222,
-//    	.pressed_button22222222 = {
-//    	   .SOME_THING = 6666
-//    	}
-//    };
+    send_resolution(busclientconnection, 240, 30); // possibly failed
 
-//    int yeah = 0;
+    int yeah = 0;
 
-    // todo busybox httpd -h $1 -p 5576 out/etc/sirin_arcades/arcades_resources
-    //         стянуть logo/intro.wav, сравнить размер и контент
-    //
-
-	int blyaha = 0;
-    while (1){
+    while (1) {
         {
             char *ch = get_keys();
             while (*ch != END) {
-                printf("%d %c ", blyaha, *ch);
+                ClientToServerEvent next_message = {
+                    .tag = PressedButton,
+    	            .pressed_button = {
+    	                .button = *ch
+    	            }
+                };
+                send_event(busclientconnection, &next_message); //possibly failed
                 ch++;
             }
-            printf("\n");
-            blyaha++;
         }
 
-//      	if (yeah == 0)
-//        {
-//      		send_event(busclientconnection, &next_message); //possibly failed
-//            yeah = 1;
-//        }
-//
-//        SoToClient received_message;
-//      	bool connection_closed;
-//
-//      	receive_event(busclientconnection, &received_message, &connection_closed);
-//
-//        if (connection_closed)
-//        {
-//    	    goto the_end;
-//        }
-//
-//        printf("%c ", received_message.draw_pixel.pixel_t.character);
-//        fflush(stdout);
-//
-        sleep(1);
+        SoToClient received_message;
+      	bool connection_closed;
+
+      	receive_event(busclientconnection, &received_message, &connection_closed);
+
+        if (connection_closed)
+        {
+    	    goto the_end;
+        }
+
+        switch (received_message.tag) {
+            case DrawPixel:
+                printf("%c ", received_message.draw_pixel.pixel_t.character); //
+                break;
+            case LoadResource:
+                load_resource(received_message.load_resource.data);
+                break;
+            case PlayResource:
+                void *lol = NULL;
+                play_wave(received_message.play_resource.data, false, &lol); // not sure if it is the right usage
+                break;
+            case CleanResources:
+                clean_resources();
+                break;
+        }
+        fflush(stdout); //
     }
 
-//    the_end:
-//        cleanup_bus(busclientconnection);
-
-
+    the_end:
+        cleanup_bus(busclientconnection);
 
     free_screen(screen);
 
