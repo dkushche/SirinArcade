@@ -8,3 +8,4 @@ tokio = { version = "1", features = ["full"] }
 libloading = { version = "0.8.6" }
 events-bus = {path = "../../sdk/out/rust/events-bus"}
 libc = "0.2.170"
+walkdir = "2"
