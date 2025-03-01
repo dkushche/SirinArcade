@@ -9,7 +9,7 @@ HELP_MESSAGE += "\n"
 include sirin_arcades/sdk/clang/sound-player/sound-player.mk
 include sirin_arcades/sdk/clang/terminal-drawer/terminal-drawer.mk
 include sirin_arcades/sdk/clang/controller/controller.mk
-include sirin_arcades/sdk/clang/resource_loader/resource_loader.mk
+include sirin_arcades/sdk/clang/resource-loader/resource-loader.mk
 include sirin_arcades/sdk/rust/events-bus/events-bus.mk
 
 HELP_MESSAGE += "\n"

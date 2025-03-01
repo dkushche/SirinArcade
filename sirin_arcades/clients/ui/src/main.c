@@ -8,7 +8,7 @@
 #include <terminal-drawer.h>
 #include <events-bus.h>
 #include <controller.h>
-#include <resource_loader.h>
+#include <resource-loader.h>
 
 int main(void)
 {

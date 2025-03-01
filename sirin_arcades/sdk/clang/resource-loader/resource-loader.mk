@@ -13,27 +13,27 @@ HELP_MESSAGE += "\n"
 
 
 sdk_resource_loader_cleanup:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader $(IMAGE) $(BUILDER_USER) \
 		rm -rf cmake_build out
 
 
 $(STAMP_DIR)/.sdk_resource_loader: $(STAMP_DIR)/.build_env
 	$(MAKE) sdk_resource_loader_cleanup
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader $(IMAGE) $(BUILDER_USER) \
 		cmake -B cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader $(IMAGE) $(BUILDER_USER) \
 		cmake --build cmake_build
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader $(IMAGE) $(BUILDER_USER) \
 		mkdir out
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader/out $(IMAGE) $(BUILDER_USER) \
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader/out $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../cmake_build/libresource_loader.so
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource_loader/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../inc/resource_loader.h
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/clang/resource-loader/out $(IMAGE) $(BUILDER_USER) \
+		ln -sf ../inc/resource-loader.h
 
 	@echo "Sirin Arcades SDK Resource loader sublib ready! 🚀"
 
@@ -52,4 +52,4 @@ sdk_resource_loader_install:
 		ln -sf ../../clang/resource_loader/out/libresource_loader.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/out/include $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../../clang/resource_loader/out/resource_loader.h
+		ln -sf ../../clang/resource_loader/out/resource-loader.h
