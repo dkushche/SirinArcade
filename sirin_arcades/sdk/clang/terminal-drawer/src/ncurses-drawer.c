@@ -137,6 +137,7 @@ screen_t *initialze_screen(void)
     }
 
     initscr();
+    nodelay(stdscr, TRUE);
     clear();
     _disable_redundant_term_func();
 

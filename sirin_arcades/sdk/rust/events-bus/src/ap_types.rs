@@ -1,3 +1,4 @@
+use std::ffi::c_char;
 use std::fmt::{Debug, Formatter};
 
 pub const SOCKET_ADDR_SIZE: usize = 32;
@@ -6,7 +7,6 @@ pub const SOCKET_ADDR_SIZE: usize = 32;
 #[derive(Copy, Clone, Debug)]
 pub enum ClientToServerEvent {
     PressedButton { button: u8 },
-    PressedButton22222222 { SOME_THING: u16 }, // other than PressedButton example (with not u8)
 }
 
 #[repr(C)]
@@ -54,7 +54,10 @@ pub enum SoToServerEvent {
 
 #[repr(C)]
 pub enum SoToClient {
-    DrawPixel { x: u8, y: u8, pixel_t: pixel_t_rust_t }
+    DrawPixel { x: u8, y: u8, pixel_t: pixel_t_rust_t },
+    LoadResource { data: [c_char; 100] },
+    PlayResource { data: [c_char; 100] },
+    CleanResources,
 }
 
 #[repr(C)]
@@ -90,7 +93,7 @@ pub struct SoToServerTransitBackArray {
 
 impl SoToServerTransitBack {
     #[no_mangle] // this funciton extists only for cbindgen generate header for SoToServerTransitBackArray and its recursive internals
-    pub extern "C" fn useless2(button: u8) -> SoToServerTransitBackArray {
+    pub extern "C" fn useless2() -> SoToServerTransitBackArray {
         unreachable!()
     }
 }

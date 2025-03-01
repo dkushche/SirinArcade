@@ -83,13 +83,6 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
                         first_event[i].underlying_event.client_event.pressed_button.button
                     );
                     break;
-                case PressedButton22222222:
-                    printf(
-                        "got SOME_THING %u\n", first_event[i]
-                        .underlying_event.client_event
-                        .pressed_button22222222.SOME_THING
-                    );
-                    break;
                 default:
                     printf("HERESY\n");
                     break;

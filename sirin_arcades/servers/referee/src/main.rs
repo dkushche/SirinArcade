@@ -1,12 +1,14 @@
 use crate::State::{
-    PendingFirstPlayer, RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset,
+    RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset,
 };
 use std::collections::{HashMap};
 use std::env;
+use std::ffi::c_void;
 use std::net::{SocketAddr};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
+use libc::free;
 use events_bus::ap_types::{
     ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType,
     SoToClient, SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray
@@ -17,11 +19,13 @@ use tokio::net::{TcpListener, UdpSocket};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
+use walkdir::WalkDir;
 
 const WINDOW_RESOLUTION_SIZE: usize = size_of::<u8>() * 2usize;
 
 struct GameServer {
     assets_dir: String,
+    supplier_addr: String,
 
     beacon_socket: Arc<UdpSocket>,
     listener: TcpListener,
@@ -44,15 +48,19 @@ enum State {
     RunLobbySystemAsset,
 }
 
+const SYSTEM_ARCADES_LOGO_PATH: &str = "liblogo_arcade";
+const SYSTEM_ARCADES_MENU_PATH: &str = "libmenu_arcade";
+const SYSTEM_ARCADES_LOBBY_PATH: &str = "liblobby_arcade";
+
 struct RunningLibrary {
     library: Library,
     game_frame_fn: unsafe extern "C" fn(first_event: *const ServerToSoTransitEvent, length: usize) -> SoToServerTransitBackArray,
 }
 
 impl RunningLibrary {
-    fn new(path_from_assets: &str) -> RunningLibrary { // example for path: system/logo/libexample"
+    fn new(assets_dir: &str, path_from_assets: &str) -> RunningLibrary { // example for path: system/logo/libexample"
         let library = unsafe {
-            Library::new(format!("./assets/{path_from_assets}.so"))
+            Library::new(format!("{assets_dir}/{path_from_assets}.so"))
                 .expect("there are no library")
         };
 
@@ -66,7 +74,7 @@ impl RunningLibrary {
 }
 
 impl GameServer {
-    async fn new(server_port: String, client_port: String, assets_dir: String) -> Self {
+    async fn new(server_port: String, client_port: String, assets_dir: String, supplier_addr: String) -> Self {
         let beacon_socket = UdpSocket::bind("0.0.0.0:0").await.unwrap();
         beacon_socket.set_broadcast(true).unwrap();
         beacon_socket
@@ -82,13 +90,14 @@ impl GameServer {
 
         GameServer {
             assets_dir,
+            supplier_addr,
 
             beacon_socket: Arc::new(beacon_socket),
             listener,
 
             clients_connections_read_halfs: Arc::new(Mutex::new(HashMap::new())),
             clients_connections_write_halfs: HashMap::new(),
-            state: State::PendingFirstPlayer,
+            state: State::PendingFirstPlayer
         }
     }
 
@@ -129,7 +138,7 @@ impl GameServer {
                     Ok(WINDOW_RESOLUTION_SIZE) => {
                         let width = buffer[0];
                         let height = buffer[1];
-                        println!("{width}, {height}");;
+                        println!("{width}, {height}");
                         {
                             let (read_half, write_half) = tcp_stream.into_split();
 
@@ -141,7 +150,7 @@ impl GameServer {
 
                         break;
                     }
-                    Ok(n) => {
+                    Ok(_n) => {
                         todo!("this match arm represents possibility of sending something with less size than needed (1 at the moment this comment was written...)")
                     }
                     Err(e) => {
@@ -159,9 +168,18 @@ impl GameServer {
 
     async fn handle_run_logo_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunLogoSystemAsset = &self.state {
-            //todo перестворити beacon з новим width;height;game_name
-            let lib = RunningLibrary::new("system/logo/cmake_build/libSirinSystemLogo");
+            let lib = RunningLibrary::new(self.assets_dir.as_str(), SYSTEM_ARCADES_LOGO_PATH);
             let clients_events_buf: Arc<Mutex<Vec<ServerToSoTransitEvent>>> = Arc::new(Mutex::new(Vec::new()));
+            // todo в усіх стейтах взяти /etc/sirin_arcades/arcades_resources/ logo/{game_name} папку, і відправити івентаи завантаження ресурсі з env({server}) + "/logo/intro.wav"
+            for entry in WalkDir::new("/etc/sirin_arcades/arcades_resources/logo").into_iter().filter_map(|e| e.ok()) { // пропустить наприклад папки ті до яких не має доступу
+                println!("{:?}", entry.path()); // todo somehow get data, write to array and send to users ;/
+                // let so_to_client = SoToClient::LoadResource { data: [] };
+                // for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                //     // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
+                //     unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
+                //     println!("sent so to client ");
+                // }
+            }
 
             {
                 for (addr, read_half_for_this_id) in self.clients_connections_read_halfs
@@ -205,6 +223,7 @@ impl GameServer {
                                     }
                                 }
                                 _ => {
+                                    // todo вбити асінк таску та перейти в минулий стейт
                                     panic!("eof"); // including connection closing
                                 } // "operation encounters an "end of file" before completely filling the buffer"
                             }
@@ -213,7 +232,7 @@ impl GameServer {
                 }
             }
 
-
+            let mut so_to_server_transit_events = None;
             loop {
                 println!("sending events from clients to so");
                 let result = {
@@ -226,10 +245,9 @@ impl GameServer {
                     println!("{copy:?}");
                     unsafe { (lib.game_frame_fn)(copy.as_ptr(), copy.len()) }
                 };
-
-                // if result == null() {
-                //     break;
-                // }
+                if so_to_server_transit_events.is_none() {
+                    so_to_server_transit_events = Some(result.first_element);
+                }
 
                 println!("beginning transit so -> client");
 
@@ -237,24 +255,34 @@ impl GameServer {
                 for event in unsafe { std::slice::from_raw_parts(result.first_element, result.length) } {
                     match event {
                         SoToServerTransitBack::ToClient(so_to_client) => {
-                            for (_addr, mut write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                                // todo настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
+                            for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                                // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
 
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
                                 unsafe { write_conn.write_all(std::slice::from_raw_parts(so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
                                 println!("sent so to client ");
                             }
                         }
-                        SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(state)) => {
+                        SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
                             // idk
                         }
-                        SoToServerTransitBack::ToServer(SoToServerEvent::RememberGame { path }) => {
-                            // idk
+                        _ => {
+                            panic!("you are punished");
                         }
                     }
                 }
                 println!("transit so -> client ended");
             }
+            {
+                let so_to_client = SoToClient::CleanResources;
+                for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                    // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
+                    unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
+                    println!("sent so to client ");
+                }
+            }
+
+            unsafe { free(so_to_server_transit_events.unwrap() as *mut c_void); }
             self.state = RunMenuSystemAsset;
             Ok(())
         } else {
@@ -264,8 +292,8 @@ impl GameServer {
 
     async fn handle_run_menu_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunMenuSystemAsset = &self.state {
+            todo!();
             self.state = RunLobbySystemAsset;
-            todo!()
         } else {
             Err(StateError::OtherStateRequired)
         }
@@ -274,25 +302,26 @@ impl GameServer {
     async fn handle_run_lobby_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunLobbySystemAsset = &self.state {
             todo!()
+            //todo перестворити beacon з новим width;height;game_name
         } else {
             Err(StateError::OtherStateRequired)
         }
     }
+
+    // todo game state
 }
 
 #[tokio::main]
 async fn main() {
-    let server_port = String::from("9876");
-    // env::var("SIRIN_ARCADE_SERVER_PORT").expect("SIRIN_ARCADE_SERVER_PORT must be set");
+    let server_port = env::var("SIRIN_ARCADE_SERVER_PORT").expect("SIRIN_ARCADE_SERVER_PORT must be set");
 
-    let client_port =
-        // env::var("SIRIN_ARCADE_CLIENT_PORT").expect("SIRIN_ARCADE_CLIENT_PORT must be set");
-        String::from("9877");
+    let client_port = env::var("SIRIN_ARCADE_CLIENT_PORT").expect("SIRIN_ARCADE_CLIENT_PORT must be set");
 
-    let assets_dir = String::from("../assets");
-    // env::var("SIRIN_ARCADE_ASSETS_DIR").expect("SIRIN_ARCADE_ASSETS_DIR must be set");
+    let assets_dir = env::var("SIRIN_ARCADE_ASSETS_DIR").expect("SIRIN_ARCADE_ASSETS_DIR must be set");
 
-    let mut server = GameServer::new(server_port, client_port, assets_dir).await;
+    let supply_server_addr = env::var("SIRIN_SUPPLIER_ADDR").expect("SIRIN_SUPPLIER_ADDR must be set"); // http://127.0.0.1:5589/
+
+    let mut server = GameServer::new(server_port, client_port, assets_dir, supply_server_addr).await;
 
     server.run_forever().await;
 }
