@@ -1,68 +1,38 @@
-HELP_MESSAGE += "> Sirin Arcades Arcades:\n"
-HELP_MESSAGE += "\t* arcades_clean: clean Sirin Arcades Arcades result dir\n"
-HELP_MESSAGE += "\t* arcades_build: build Sirin Arcades Arcades result dir\n"
-HELP_MESSAGE += "\t* arcades_fclean: clean Sirin Arcades Arcades result dir and all arcades\n"
-HELP_MESSAGE += "\n"
+include build_utils/subsystem.mk
 
-include sirin_arcades/arcades/logo/logo.mk
-include sirin_arcades/arcades/menu/menu.mk
-include sirin_arcades/arcades/lobby/lobby.mk
-include sirin_arcades/arcades/pong/pong.mk
+define main
 
-HELP_MESSAGE += "\n"
+$(eval ID := $(1))
+$(eval PARENT_ID := $(2))
+$(eval PARENT_NAME := $(3))
+$(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
+$(eval NAME := Arcades)
 
-.PHONY:             \
-	arcades_cleanup \
-	arcades_clean   \
-	arcades_build   \
-	arcades_fclean  \
-	arcades_install
+$(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_USER))
+$(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-arcades_cleanup:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades $(IMAGE) $(BUILDER_USER) \
-		rm -rf out
+handler_$(PARENT_ID)_$(ID)_build:
 
 
-$(STAMP_DIR)/.arcades: $(STAMP_DIR)/.arcades_lobby \
-				   	   $(STAMP_DIR)/.arcades_logo  \
-				   	   $(STAMP_DIR)/.arcades_menu  \
-				   	   $(STAMP_DIR)/.arcades_pong
-
-	$(MAKE) arcades_cleanup
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades $(IMAGE) $(BUILDER_USER) \
-		mkdir -p out/arcades out/resources
-
-	$(MAKE) arcades_lobby_install
-	$(MAKE) arcades_logo_install
-	$(MAKE) arcades_menu_install
-	$(MAKE) arcades_pong_install
-
-	@echo "Sirin Arcades Arcades ready! 🚀"
-
-	$(call create_stamp,$@)
+handler_$(PARENT_ID)_$(ID)_out:
+	$(WORKDIR_RUN) mkdir -p out/arcades out/resources
 
 
-arcades_clean: arcades_cleanup
-	$(call remove_stamp,.arcades)
+handler_$(PARENT_ID)_$(ID)_clean:
+	$(WORKDIR) rm -rf out
 
 
-arcades_build: $(STAMP_DIR)/.arcades
-
-
-arcades_fclean:         \
-	arcades_clean       \
-	arcades_lobby_clean \
-	arcades_logo_clean  \
-	arcades_menu_clean  \
-	arcades_pong_clean
-
-
-arcades_install:
+handler_$(PARENT_ID)_$(ID)_install:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/out/etc/sirin_arcades $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../../arcades/out/arcades
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/out/etc/sirin_arcades $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../../arcades/out/resources arcades_resources
+
+
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),,$(PREFIX)))
+
+endef

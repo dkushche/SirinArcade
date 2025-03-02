@@ -1,54 +1,44 @@
-$(SIRIN_ARCADES_BUILD_MODULE)
+include build_utils/subsystem.mk
 
-HELP_MESSAGE += "\t> Lobby:\n"
-HELP_MESSAGE += "\t\t* arcades_lobby_clean: clean Sirin Arcades Lobby Arcade\n"
-HELP_MESSAGE += "\t\t* arcades_lobby_build: build Sirin Arcades Lobby Arcade\n"
-HELP_MESSAGE += "\n"
+define main
 
-.PHONY:                   \
-	arcades_lobby_cleanup \
-	arcades_lobby_clean   \
-	arcades_lobby_build
+$(eval ID := $(1))
+$(eval PARENT_ID := $(2))
+$(eval PARENT_NAME := $(3))
+$(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
+$(eval NAME := Lobby)
+$(eval DEPS := $(STAMP_DIR)/.sirin_arcades_sdk)
 
-arcades_lobby_cleanup:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/lobby $(IMAGE) $(BUILDER_USER) \
-		rm -rf cmake_build out
-
-
-$(STAMP_DIR)/.arcades_lobby: $(STAMP_DIR)/.build_env $(STAMP_DIR)/.sdk
-	$(MAKE) arcades_lobby_cleanup
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/lobby $(IMAGE) $(BUILDER_USER) \
-		cmake \
-			-DSIRINARCADESDK_INCLUDE=../../sdk/out/include \
-			-DSIRINARCADESDK_LIB_DIR=../../sdk/out/sirin_arcade_sdk \
-			-B cmake_build
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/lobby $(IMAGE) $(BUILDER_USER) \
-		cmake --build cmake_build
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/lobby $(IMAGE) $(BUILDER_USER) \
-		mkdir out
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/lobby/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../cmake_build/liblobby_arcade.so
-
-	@echo "Sirin Arcades Lobby Arcade ready! 🚀"
-
-	$(call create_stamp,$@)
+$(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_USER))
+$(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-arcades_lobby_clean: arcades_lobby_cleanup
-	$(call remove_stamp,.arcades_lobby)
+handler_$(PARENT_ID)_$(ID)_build:
+	$(WORKDIR_RUN) cmake -DSIRINARCADESDK_INCLUDE=../../sdk/out/include \
+						 -DSIRINARCADESDK_LIB_DIR=../../sdk/out/sirin_arcade_sdk \
+						 -B cmake_build
+	$(WORKDIR_RUN) cmake --build cmake_build
 
 
-arcades_lobby_build: $(STAMP_DIR)/.arcades_lobby
+handler_$(PARENT_ID)_$(ID)_out:
+	$(WORKDIR_RUN) mkdir out
+	$(OUTDIR_RUN) ln -sf ../cmake_build/lib$(ID)_arcade.so
 
 
-arcades_lobby_install:
+handler_$(PARENT_ID)_$(ID)_clean:
+	$(OUTDIR_RUN) rm -rf cmake_build out
+
+
+handler_$(PARENT_ID)_$(ID)_install:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/out/arcades $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../../lobby/out/liblobby_arcade.so
+		ln -sf ../../lobby/out/lib$(ID)_arcade.so
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/out/resources $(IMAGE) $(BUILDER_USER) \
-		mkdir lobby
+		mkdir $(ID)
+
+
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),$(DEPS),$(PREFIX)))
+
+endef

@@ -6,6 +6,7 @@ $(eval ID := $(1))
 $(eval PARENT_ID := $(2))
 $(eval PARENT_NAME := $(3))
 $(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
 $(eval NAME := Referee)
 $(eval DEPS := $(STAMP_DIR)/.sirin_arcades_sdk)
@@ -16,10 +17,10 @@ $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER
 
 handler_$(PARENT_ID)_$(ID)_build:
 	$(WORKDIR_RUN) cargo build
-	$(WORKDIR_RUN) mkdir out
 
 
 handler_$(PARENT_ID)_$(ID)_out:
+	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../target/debug/SirinArcadeReferee
 
 
@@ -35,6 +36,6 @@ handler_$(PARENT_ID)_$(ID)_install:
 		mkdir referee
 
 
-$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),$(DEPS)))
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),$(DEPS),$(PREFIX)))
 
 endef

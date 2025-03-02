@@ -6,6 +6,7 @@ $(eval ID := $(1))
 $(eval PARENT_ID := $(2))
 $(eval PARENT_NAME := $(3))
 $(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
 $(eval NAME := Events Bus)
 
@@ -14,10 +15,10 @@ $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER
 
 handler_$(PARENT_ID)_$(ID)_build:
 	$(WORKDIR_RUN) cargo build
-	$(WORKDIR_RUN) mkdir out
 
 
 handler_$(PARENT_ID)_$(ID)_out:
+	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../target/$(ID).h
 	$(OUTDIR_RUN) ln -sf ../target/debug/lib$(ID).so
 
@@ -36,7 +37,7 @@ handler_$(PARENT_ID)_$(ID)_install:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk/out/rust $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../$(ID)
 
-$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME)))
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),,$(PREFIX)))
 
 endef
 

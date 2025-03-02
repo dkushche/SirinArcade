@@ -6,6 +6,7 @@ $(eval ID := $(1))
 $(eval PARENT_ID := $(2))
 $(eval PARENT_NAME := $(3))
 $(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
 $(eval NAME := Resource Loader)
 
@@ -15,10 +16,10 @@ $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER
 handler_$(PARENT_ID)_$(ID)_build:
 	$(WORKDIR_RUN) cmake -B cmake_build
 	$(WORKDIR_RUN) cmake --build cmake_build
-	$(WORKDIR_RUN) mkdir out
 
 
 handler_$(PARENT_ID)_$(ID)_out:
+	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../cmake_build/lib$(ID).so
 	$(OUTDIR_RUN) ln -sf ../inc/$(ID).h
 
@@ -35,6 +36,6 @@ handler_$(PARENT_ID)_$(ID)_install:
 		ln -sf ../../$(ID)/out/$(ID).h
 
 
-$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME)))
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),,$(PREFIX)))
 
 endef

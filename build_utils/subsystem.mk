@@ -5,10 +5,12 @@ define print_help
 	PARENT_ID := $(3)
 	ID := $(4)
 
-	HELP_MESSAGE += "> $(PARENT_NAME) $(NAME):\n"
-	HELP_MESSAGE += "\t* $(PARENT_ID)_$(ID)_clean: clean $(PARENT_NAME) $(NAME) result dir\n"
-	HELP_MESSAGE += "\t* $(PARENT_ID)_$(ID)_build: build $(PARENT_NAME) $(NAME) result dir\n"
-	HELP_MESSAGE += "\t* $(PARENT_ID)_$(ID)_rclean: clean $(PARENT_NAME) $(NAME) and all children\n"
+	PREFIX := $(5)
+
+	HELP_MESSAGE += "$(PREFIX)> $(PARENT_NAME) $(NAME):\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_clean: clean $(PARENT_NAME) $(NAME) result dir\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_build: build $(PARENT_NAME) $(NAME) result dir\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_rclean: clean $(PARENT_NAME) $(NAME) and all children\n"
 	HELP_MESSAGE += "\n"
 endef
 
@@ -39,10 +41,10 @@ endef
 
 
 define import_child_subsystems
-	$(foreach module, $(1),                                           \
-		$(eval include $(module))                                     \
-		$(eval MODULE_ID := $(basename $(notdir $(module))))          \
-		$(eval $(call main,$(MODULE_ID),$(2),$(3),$(4)/$(MODULE_ID))) \
+	$(foreach module, $(1),                                                  \
+		$(eval include $(module))                                            \
+		$(eval MODULE_ID := $(basename $(notdir $(module))))                 \
+		$(eval $(call main,$(MODULE_ID),$(2),$(3),$(4)/$(MODULE_ID),$(5)\t)) \
 	)
 endef
 
@@ -54,8 +56,9 @@ $(eval PARENT_NAME := $(3))
 $(eval WORKDIR := $(4))
 $(eval NAME := $(5))
 $(eval DEPS := $(6))
+$(eval PREFIX := $(7))
 
-$(eval $(call print_help,$(PARENT_NAME),$(NAME),$(PARENT_ID),$(ID)))
+$(eval $(call print_help,$(PARENT_NAME),$(NAME),$(PARENT_ID),$(ID),$(PREFIX)))
 $(eval $(call discover_modules,$(WORKDIR)))
 $(eval $(call get_module_names,$(MODULES)))
 $(eval $(call get_module_interfaces,$(MODULE_NAMES)))
@@ -104,6 +107,6 @@ $(PARENT_ID)_$(ID)_rclean:   \
 $(PARENT_ID)_$(ID)_install:
 	$(MAKE) handler_$(PARENT_ID)_$(ID)_install
 
-$(eval $(call import_child_subsystems,$(MODULES),$(PARENT_ID)_$(ID),$(PARENT_NAME) $(NAME),$(WORKDIR)))
+$(eval $(call import_child_subsystems,$(MODULES),$(PARENT_ID)_$(ID),$(PARENT_NAME) $(NAME),$(WORKDIR),$(PREFIX)))
 
 endef
