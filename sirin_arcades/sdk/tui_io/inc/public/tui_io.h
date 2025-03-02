@@ -1,5 +1,5 @@
-#ifndef TERMINAL_DRAWER_H
-#define TERMINAL_DRAWER_H
+#ifndef TUI_IO_H
+#define TUI_IO_H
 
 #include <stdint.h>
 
@@ -14,6 +14,16 @@ typedef enum {
     ARCADE_WHITE
 } ncurses_color_t;
 
+typedef enum {
+    W = 'w',
+    A = 'a',
+    S = 's',
+    D = 'd',
+    SPACE = ' ',
+    C = 'c',
+    END = 0xFF,
+} keys_t;
+
 typedef struct pixel pixel_t;
 
 typedef struct screen {
@@ -22,6 +32,7 @@ typedef struct screen {
 } screen_t;
 
 pixel_t *create_pixel(char character, uint8_t color_pair_id);
+char *get_keys(void);
 
 void fill_screen_with_pixel(screen_t *screen, pixel_t *pixel);
 int draw(screen_t *screen, uint8_t y_pos, uint8_t x_pos, pixel_t *pixel);
@@ -31,4 +42,4 @@ int free_screen(screen_t *screen);
 
 void render(screen_t *screen);
 
-#endif // TERMINAL_DRAWER_H
+#endif // TUI_IO_H

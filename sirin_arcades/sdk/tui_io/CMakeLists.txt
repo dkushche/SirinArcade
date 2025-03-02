@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(terminal_drawer VERSION 0.1 DESCRIPTION "")
+project(tui_io VERSION 0.1 DESCRIPTION "")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -9,6 +9,7 @@ include_directories(${CURSES_INCLUDE_DIR})
 
 set(SRC
     src/ncurses-drawer.c
+    src/controller.c
 )
 
 add_library(${PROJECT_NAME} SHARED ${SRC})

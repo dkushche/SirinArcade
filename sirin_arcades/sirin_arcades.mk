@@ -1,3 +1,9 @@
+$(SIRIN_ARCADES_BUILD_MODULE)
+
+SUBSYSTEM = sirin_arcade
+SUBSYSTEM_NAME = Sirin Arcades
+SUBSYSTEM_WORKDIR = sirin_arcades
+
 HELP_MESSAGE += "🚀🚀🚀🚀 Sirin Arcades 🚀🚀🚀🚀\n"
 HELP_MESSAGE += "\n"
 HELP_MESSAGE += "* clean: clean Sirin Arcades result dir\n"
@@ -6,9 +12,13 @@ HELP_MESSAGE += "* fclean: full clean\n"
 HELP_MESSAGE += "\n"
 
 include sirin_arcades/sdk/sdk.mk
+$(eval $(call main,sdk,sirin_arcades,Sirin Arcades,sirin_arcades/sdk))
+
 include sirin_arcades/servers/servers.mk
-include sirin_arcades/clients/clients.mk
-include sirin_arcades/arcades/arcades.mk
+$(eval $(call main,servers,sirin_arcades,Sirin Arcades,sirin_arcades/servers))
+
+# include sirin_arcades/clients/clients.mk
+# include sirin_arcades/arcades/arcades.mk
 
 .PHONY:     \
 	cleanup \

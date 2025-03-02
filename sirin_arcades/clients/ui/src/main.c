@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include <terminal-drawer.h>
-#include <events-bus.h>
-#include <controller.h>
-#include <resource-loader.h>
+#include <terminal_drawer.h>
+#include <events_bus.h>
+#include <tui_io.h>
+#include <resource_loader.h>
 
 int main(void)
 {

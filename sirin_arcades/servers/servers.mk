@@ -1,60 +1,35 @@
-HELP_MESSAGE += "> Sirin Arcades Servers:\n"
-HELP_MESSAGE += "\t* servers_clean: clean Sirin Arcades Servers result dir\n"
-HELP_MESSAGE += "\t* servers_build: build Sirin Arcades Servers result dir\n"
-HELP_MESSAGE += "\t* servers_fclean: clean Sirin Arcades Servers result dir and all servers\n"
-HELP_MESSAGE += "\n"
+include build_utils/subsystem.mk
 
-include sirin_arcades/servers/referee/referee.mk
-include sirin_arcades/servers/supplier/supplier.mk
+define main
 
-HELP_MESSAGE += "\n"
+$(eval ID := $(1))
+$(eval PARENT_ID := $(2))
+$(eval PARENT_NAME := $(3))
+$(eval WORKDIR := $(4))
 
+$(eval NAME := Servers)
 
-.PHONY:             \
-	servers_cleanup \
-	servers_clean   \
-	servers_build   \
-	servers_fclean  \
-	servers_install
+handler_$(PARENT_ID)_$(ID)_build:
 
 
-servers_cleanup:
+handler_$(PARENT_ID)_$(ID)_out:
+	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers $(IMAGE) $(BUILDER_USER) \
+		mkdir -p out/servers out/resources
+
+
+handler_$(PARENT_ID)_$(ID)_clean:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers $(IMAGE) $(BUILDER_USER) \
 		rm -rf out
 
 
-$(STAMP_DIR)/.servers: $(STAMP_DIR)/.servers_referee \
-					   $(STAMP_DIR)/.servers_supplier
-
-	$(MAKE) servers_cleanup
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers $(IMAGE) $(BUILDER_USER) \
-		mkdir -p out/servers out/resources
-
-	$(MAKE) servers_referee_install
-	$(MAKE) servers_supplier_install
-
-	@echo "Sirin Arcades Servers ready! 🚀"
-
-	$(call create_stamp,$@)
-
-
-servers_clean: servers_cleanup
-	$(call remove_stamp,.servers)
-
-
-servers_build: $(STAMP_DIR)/.servers
-
-
-servers_fclean:            \
-	servers_clean          \
-	servers_referee_clean  \
-	servers_supplier_clean
-
-
-servers_install:
+handler_$(PARENT_ID)_$(ID)_install:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/out/bin $(IMAGE) $(BUILDER_USER) \
-		rln ../../servers/out/servers .
+			rln ../../servers/out/servers .
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/out/etc/sirin_arcades $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../../servers/out/resources servers_resources
+
+
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME)))
+
+endef

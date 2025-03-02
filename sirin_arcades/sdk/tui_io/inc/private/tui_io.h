@@ -1,5 +1,5 @@
-#ifndef TERMINAL_DRAWER_H
-#define TERMINAL_DRAWER_H
+#ifndef TUI_IO_H
+#define TUI_IO_H
 
 #include <stdint.h>
 
@@ -27,4 +27,4 @@ typedef struct screen {
     pixel_t *buffers[2];
 } screen_t;
 
-#endif // TERMINAL_DRAWER_H
+#endif // TUI_IO_H

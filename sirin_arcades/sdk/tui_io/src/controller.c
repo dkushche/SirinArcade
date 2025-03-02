@@ -2,7 +2,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <curses.h>
-#include <controller.h>
+
+#include "public/tui_io.h"
 
 char *global_array = NULL;
 size_t global_array_capacity = 0;
