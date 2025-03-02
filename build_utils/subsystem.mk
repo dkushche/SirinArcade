@@ -8,9 +8,9 @@ define print_help
 	PREFIX := $(5)
 
 	HELP_MESSAGE += "$(PREFIX)> $(PARENT_NAME) $(NAME):\n"
-	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_clean: clean $(PARENT_NAME) $(NAME) result dir\n"
-	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_build: build $(PARENT_NAME) $(NAME) result dir\n"
-	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)_$(ID)_rclean: clean $(PARENT_NAME) $(NAME) and all children\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)$(ID)_clean: clean $(PARENT_NAME) $(NAME) result dir\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)$(ID)_build: build $(PARENT_NAME) $(NAME) result dir\n"
+	HELP_MESSAGE += "$(PREFIX)\t* $(PARENT_ID)$(ID)_rclean: clean $(PARENT_NAME) $(NAME) and all children\n"
 	HELP_MESSAGE += "\n"
 endef
 
@@ -27,15 +27,19 @@ endef
 
 define get_module_interfaces
 	MODULE_STAMPS := $(foreach module_name, $(1),       \
-		$(STAMP_DIR)/.$(PARENT_ID)_$(ID)_$(module_name) \
+		$(STAMP_DIR)/.$(PARENT_ID)$(ID)_$(module_name) \
 	)
 
-	MODULE_INSTALL_CMDS := $(foreach module_name, $(1), \
-		$(PARENT_ID)_$(ID)_$(module_name)_install       \
+	MODULE_EXPORT_CMDS := $(foreach module_name, $(1), \
+		$(PARENT_ID)$(ID)_$(module_name)_export        \
 	)
 
 	MODULE_CLEAN_CMDS := $(foreach module_name, $(1), \
-		$(PARENT_ID)_$(ID)_$(module_name)_clean       \
+		$(PARENT_ID)$(ID)_$(module_name)_clean       \
+	)
+
+	MODULE_RCLEAN_CMDS := $(foreach module_name, $(1), \
+		$(PARENT_ID)$(ID)_$(module_name)_rclean        \
 	)
 endef
 
@@ -66,47 +70,47 @@ $(eval $(call get_module_interfaces,$(MODULE_NAMES)))
 $(SIRIN_ARCADES_BUILD_MODULE)
 
 .PHONY:                        \
-	$(PARENT_ID)_$(ID)_cleanup \
-	$(PARENT_ID)_$(ID)_clean   \
-	$(PARENT_ID)_$(ID)_build   \
-	$(PARENT_ID)_$(ID)_rclean  \
-	$(PARENT_ID)_$(ID)_install
+	$(PARENT_ID)$(ID)_cleanup \
+	$(PARENT_ID)$(ID)_clean   \
+	$(PARENT_ID)$(ID)_build   \
+	$(PARENT_ID)$(ID)_rclean  \
+	$(PARENT_ID)$(ID)_export
 
 
-$(PARENT_ID)_$(ID)_cleanup:
-	$(MAKE) handler_$(PARENT_ID)_$(ID)_clean
+$(PARENT_ID)$(ID)_cleanup:
+	$(MAKE) handler_$(PARENT_ID)$(ID)_clean
 
 
-$(STAMP_DIR)/.$(PARENT_ID)_$(ID): $(MODULE_STAMPS) $(DEPS)
-	$(MAKE) $(PARENT_ID)_$(ID)_cleanup
+$(STAMP_DIR)/.$(PARENT_ID)$(ID): $(MODULE_STAMPS) $(DEPS)
+	$(MAKE) $(PARENT_ID)$(ID)_cleanup
 
-	$(MAKE) handler_$(PARENT_ID)_$(ID)_build
-	$(MAKE) handler_$(PARENT_ID)_$(ID)_out
+	$(MAKE) handler_$(PARENT_ID)$(ID)_build
+	$(MAKE) handler_$(PARENT_ID)$(ID)_out
 
-ifneq ($(strip $(MODULE_INSTALL_CMDS)),)
-	$(MAKE) $(MODULE_INSTALL_CMDS)
+ifneq ($(strip $(MODULE_EXPORT_CMDS)),)
+	$(MAKE) $(MODULE_EXPORT_CMDS)
 endif
 
 	@echo "$(PARENT_NAME) $(NAME) ready! 🚀"
 
-	$(call create_stamp,.$(PARENT_ID)_$(ID))
+	$(call create_stamp,.$(PARENT_ID)$(ID))
 
 
-$(PARENT_ID)_$(ID)_clean: $(PARENT_ID)_$(ID)_cleanup
-	$(call remove_stamp,.$(PARENT_ID)_$(ID))
+$(PARENT_ID)$(ID)_clean: $(PARENT_ID)$(ID)_cleanup $(MODULE_CLEAN_CMDS)
+	$(call remove_stamp,.$(PARENT_ID)$(ID))
 
 
-$(PARENT_ID)_$(ID)_build: $(STAMP_DIR)/.$(PARENT_ID)_$(ID)
+$(PARENT_ID)$(ID)_build: $(STAMP_DIR)/.$(PARENT_ID)$(ID)
 
 
-$(PARENT_ID)_$(ID)_rclean:   \
-	$(PARENT_ID)_$(ID)_clean \
-	$(MODULE_CLEAN_CMDS)
+$(PARENT_ID)$(ID)_rclean:   \
+	$(PARENT_ID)$(ID)_clean \
+	$(MODULE_RCLEAN_CMDS)
 
 
-$(PARENT_ID)_$(ID)_install:
-	$(MAKE) handler_$(PARENT_ID)_$(ID)_install
+$(PARENT_ID)$(ID)_export:
+	$(MAKE) handler_$(PARENT_ID)$(ID)_export
 
-$(eval $(call import_child_subsystems,$(MODULES),$(PARENT_ID)_$(ID),$(PARENT_NAME) $(NAME),$(WORKDIR),$(PREFIX)))
+$(eval $(call import_child_subsystems,$(MODULES),$(PARENT_ID)$(ID)_,$(PARENT_NAME) $(NAME),$(WORKDIR),$(PREFIX)))
 
 endef

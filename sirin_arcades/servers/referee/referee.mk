@@ -15,20 +15,20 @@ $(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_US
 $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-handler_$(PARENT_ID)_$(ID)_build:
+handler_$(PARENT_ID)$(ID)_build:
 	$(WORKDIR_RUN) cargo build
 
 
-handler_$(PARENT_ID)_$(ID)_out:
+handler_$(PARENT_ID)$(ID)_out:
 	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../target/debug/SirinArcadeReferee
 
 
-handler_$(PARENT_ID)_$(ID)_clean:
+handler_$(PARENT_ID)$(ID)_clean:
 	$(WORKDIR_RUN) rm -rf target Cargo.lock out
 
 
-handler_$(PARENT_ID)_$(ID)_install:
+handler_$(PARENT_ID)$(ID)_export:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/out/servers $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../referee/out/SirinArcadeReferee
 

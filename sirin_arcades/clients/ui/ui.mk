@@ -15,27 +15,32 @@ $(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_US
 $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-handler_$(PARENT_ID)_$(ID)_build:
-	$(WORKDIR_RUN) cmake -DSIRINARCADESDK_INCLUDE=../../sdk/out/include \
+handler_$(PARENT_ID)$(ID)_build:
+	@echo "$@ HANDLER"
+
+	@$(WORKDIR_RUN) cmake -DSIRINARCADESDK_INCLUDE=../../sdk/out/include \
 			             -DSIRINARCADESDK_LIB_DIR=../../sdk/out/sirin_arcade_sdk \
 			             -B cmake_build
-	$(WORKDIR_RUN) cmake --build cmake_build
+
+	@$(WORKDIR_RUN) cmake --build cmake_build
 
 
-handler_$(PARENT_ID)_$(ID)_out:
+handler_$(PARENT_ID)$(ID)_out:
 	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../cmake_build/SirinArcadeClient
 
 
-handler_$(PARENT_ID)_$(ID)_clean:
+handler_$(PARENT_ID)$(ID)_clean:
 	$(WORKDIR_RUN) rm -rf cmake_build out
 
 
-handler_$(PARENT_ID)_$(ID)_install:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/clients/out/clients $(IMAGE) $(BUILDER_USER) \
+handler_$(PARENT_ID)$(ID)_export:
+	@echo "$@ HANDLER"
+
+	@$(RUN_IN_CONTAINER) -t -w /sirin_arcades/clients/out/clients $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../ui/out/SirinArcadeClient
 
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/clients/out/resources $(IMAGE) $(BUILDER_USER) \
+	@$(RUN_IN_CONTAINER) -t -w /sirin_arcades/clients/out/resources $(IMAGE) $(BUILDER_USER) \
 		mkdir ui
 
 

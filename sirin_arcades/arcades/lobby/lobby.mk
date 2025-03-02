@@ -15,23 +15,23 @@ $(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_US
 $(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-handler_$(PARENT_ID)_$(ID)_build:
+handler_$(PARENT_ID)$(ID)_build:
 	$(WORKDIR_RUN) cmake -DSIRINARCADESDK_INCLUDE=../../sdk/out/include \
 						 -DSIRINARCADESDK_LIB_DIR=../../sdk/out/sirin_arcade_sdk \
 						 -B cmake_build
 	$(WORKDIR_RUN) cmake --build cmake_build
 
 
-handler_$(PARENT_ID)_$(ID)_out:
+handler_$(PARENT_ID)$(ID)_out:
 	$(WORKDIR_RUN) mkdir out
 	$(OUTDIR_RUN) ln -sf ../cmake_build/lib$(ID)_arcade.so
 
 
-handler_$(PARENT_ID)_$(ID)_clean:
-	$(OUTDIR_RUN) rm -rf cmake_build out
+handler_$(PARENT_ID)$(ID)_clean:
+	$(WORKDIR_RUN) rm -rf cmake_build out
 
 
-handler_$(PARENT_ID)_$(ID)_install:
+handler_$(PARENT_ID)$(ID)_export:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/arcades/out/arcades $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../lobby/out/lib$(ID)_arcade.so
 

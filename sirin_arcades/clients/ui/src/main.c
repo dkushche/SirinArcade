@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include <terminal_drawer.h>
 #include <events_bus.h>
 #include <tui_io.h>
 #include <resource_loader.h>

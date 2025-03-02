@@ -10,16 +10,16 @@ $(eval PREFIX := $(5))
 
 $(eval NAME := Supplier)
 
-handler_$(PARENT_ID)_$(ID)_build:
+handler_$(PARENT_ID)$(ID)_build:
 
 
-handler_$(PARENT_ID)_$(ID)_out:
+handler_$(PARENT_ID)$(ID)_out:
 
 
-handler_$(PARENT_ID)_$(ID)_clean:
+handler_$(PARENT_ID)$(ID)_clean:
 
 
-handler_$(PARENT_ID)_$(ID)_install:
+handler_$(PARENT_ID)$(ID)_export:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/out/servers $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../supplier/supplier.sh
 

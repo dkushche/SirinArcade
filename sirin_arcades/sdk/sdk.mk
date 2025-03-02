@@ -10,21 +10,21 @@ $(eval PREFIX := $(5))
 
 $(eval NAME := SDK)
 
-handler_$(PARENT_ID)_$(ID)_build:
+handler_$(PARENT_ID)$(ID)_build:
 	@echo "Nothing done for stage build"
 
 
-handler_$(PARENT_ID)_$(ID)_out:
+handler_$(PARENT_ID)$(ID)_out:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk $(IMAGE) $(BUILDER_USER) \
 		mkdir -p out/sirin_arcade_sdk out/include out/rust
 
 
-handler_$(PARENT_ID)_$(ID)_clean:
+handler_$(PARENT_ID)$(ID)_clean:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/sdk $(IMAGE) $(BUILDER_USER) \
 		rm -rf out
 
 
-handler_$(PARENT_ID)_$(ID)_install:
+handler_$(PARENT_ID)$(ID)_export:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/out/lib $(IMAGE) $(BUILDER_USER) \
 		rln ../../sdk/out/sirin_arcade_sdk .
 
