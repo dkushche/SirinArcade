@@ -9,5 +9,5 @@ fn main() {
         .with_language(Language::C)
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file("target/events-bus.h");
+        .write_to_file("target/events_bus.h");
 }

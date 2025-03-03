@@ -1,49 +1,41 @@
-$(SIRIN_ARCADES_BUILD_MODULE)
+include build_utils/subsystem.mk
 
-HELP_MESSAGE += "\t> Referee\n"
-HELP_MESSAGE += "\t\t* servers_referee_clean: clean Sirin Arcades Referee Server\n"
-HELP_MESSAGE += "\t\t* servers_referee_build: build Sirin Arcades Referee Server\n"
-HELP_MESSAGE += "\n"
+define main
 
-.PHONY:                     \
-	servers_referee_cleanup \
-	servers_referee_clean   \
-	servers_referee_build   \
-	servers_referee_install
+$(eval ID := $(1))
+$(eval PARENT_ID := $(2))
+$(eval PARENT_NAME := $(3))
+$(eval WORKDIR := $(4))
+$(eval PREFIX := $(5))
 
+$(eval NAME := Referee)
+$(eval DEPS := $(STAMP_DIR)/.sirin_arcades_sdk)
 
-servers_referee_cleanup:
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/referee $(IMAGE) $(BUILDER_USER) \
-		rm -rf target Cargo.lock out
+$(eval WORKDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR) $(IMAGE) $(BUILDER_USER))
+$(eval OUTDIR_RUN = $(RUN_IN_CONTAINER) -t -w /$(WORKDIR)/out $(IMAGE) $(BUILDER_USER))
 
 
-$(STAMP_DIR)/.servers_referee: $(STAMP_DIR)/.build_env $(STAMP_DIR)/.sdk
-	$(MAKE) servers_referee_cleanup
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/referee $(IMAGE) $(BUILDER_USER) \
-		cargo build
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/referee $(IMAGE) $(BUILDER_USER) \
-		mkdir out
-
-	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/referee/out $(IMAGE) $(BUILDER_USER) \
-		ln -sf ../target/debug/SirinArcadeReferee
-
-	@echo "Sirin Arcades Referee Server ready! 🚀"
-
-	$(call create_stamp,$@)
+handler_$(PARENT_ID)$(ID)_build:
+	$(WORKDIR_RUN) cargo build
 
 
-servers_referee_clean: servers_referee_cleanup
-	$(call remove_stamp,.servers_referee)
+handler_$(PARENT_ID)$(ID)_out:
+	$(WORKDIR_RUN) mkdir out
+	$(OUTDIR_RUN) ln -sf ../target/debug/SirinArcadeReferee
 
 
-servers_referee_build: $(STAMP_DIR)/.servers_referee
+handler_$(PARENT_ID)$(ID)_clean:
+	$(WORKDIR_RUN) rm -rf target Cargo.lock out
 
 
-servers_referee_install:
+handler_$(PARENT_ID)$(ID)_export:
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/out/servers $(IMAGE) $(BUILDER_USER) \
 		ln -sf ../../referee/out/SirinArcadeReferee
 
 	$(RUN_IN_CONTAINER) -t -w /sirin_arcades/servers/out/resources $(IMAGE) $(BUILDER_USER) \
 		mkdir referee
+
+
+$(eval $(call register_subsystem,$(ID),$(PARENT_ID),$(PARENT_NAME),$(WORKDIR),$(NAME),$(DEPS),$(PREFIX)))
+
+endef

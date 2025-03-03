@@ -7,7 +7,9 @@ SIRIN_ARCADES_BUILD_MODULE := all: help
 HELP_MESSAGE = ""
 
 include build_env/build_env.mk
+
 include sirin_arcades/sirin_arcades.mk
+$(eval $(call main,sirin_arcades,,,sirin_arcades))
 
 all: help
 

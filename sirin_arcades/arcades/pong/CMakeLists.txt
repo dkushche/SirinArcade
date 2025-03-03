@@ -23,5 +23,5 @@ add_library(${PROJECT_NAME} SHARED ${SRC})
 target_link_directories(${PROJECT_NAME} PRIVATE ${SIRINARCADESDK_LIB_DIR})
 
 target_link_libraries(${PROJECT_NAME} sound_player)
-target_link_libraries(${PROJECT_NAME} terminal_drawer)
+target_link_libraries(${PROJECT_NAME} tui_io)
 target_link_libraries(${PROJECT_NAME} events_bus)
