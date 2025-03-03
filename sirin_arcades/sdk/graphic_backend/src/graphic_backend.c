@@ -1,16 +1,23 @@
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
-typedef struct pixel
-{
-    uint8_t color_pair_id;
-    uint8_t character;
-} pixel_t;
+#include <vector.h>
+#include <stdint.h>
+#include <graphic_backend.h>
 
-typedef struct double_buffered_frame
+static void clear_frame_buffer(double_buffered_frame_t *frame_buffer)
 {
-    uint8_t width;
-    uint8_t height;
-    pixel_t *buffers[2];
-} double_buffered_frame_t;
+    pixel_t black_pixel = {
+        .color_pair_id = ARCADE_BLACK,
+        .character = ' '
+    };
+
+    for (int j = 0; j < frame_buffer->width * frame_buffer->height; j++)
+    {
+        frame_buffer->buffers[frame_buffer->active][j] = black_pixel;
+    }
+}
 
 double_buffered_frame_t *generate_frame_buffers(int32_t width, int32_t height)
 {
@@ -28,79 +35,88 @@ double_buffered_frame_t *generate_frame_buffers(int32_t width, int32_t height)
 
     for (int i = 0; i < 2; i++)
     {
-        res->buffers[i] = (pixel_t *)malloc()
-    }
-}
-
-
-
-
-
-
-
-
-pixel_t *create_pixel(char character, uint8_t color_pair_id)
-{
-    pixel_t *new_pixel = (pixel_t *)malloc(sizeof(pixel_t));
-
-    new_pixel->character = character;
-    new_pixel->color_pair_id = color_pair_id;
-
-    return new_pixel;
-}
-
-void fill_screen_with_pixel(screen_t *screen, pixel_t *pixel)
-{
-    for (uint16_t i = 0; i < screen->height * screen->width; i++)
-    {
-        screen->buffers[screen->active_buffer][i] = *pixel;
-    }
-}
-
-void render(screen_t *screen)
-{
-    int cur_buffer_id = screen->active_buffer;
-    int prev_buffer_id = screen->active_buffer == 0 ? 1 : 0;
-
-    for (uint16_t j = 0; j < screen->height * screen->width; j++)
-    {
-        if (memcmp(&screen->buffers[cur_buffer_id][j], &screen->buffers[prev_buffer_id][j], sizeof(pixel_t)) != 0)
-        {
-            uint8_t x_pos = j % screen->width;
-            uint8_t y_pos = j / screen->width;
-
-            
-        }
-
-        screen->buffers[prev_buffer_id][j].character = ' ';
+        res->buffers[i] = (pixel_t *)malloc(width * height * sizeof(pixel_t));
+        res->active = i;
+        clear_frame_buffer(res);
     }
 
-    screen->active_buffer = prev_buffer_id;    
+    return res;
 }
 
-static void _initialize_buffers(screen_t *screen)
+void delete_frame_buffer(double_buffered_frame_t *frame_buffer)
 {
-    pixel_t *black_pixel = create_pixel(' ', ARCADE_BLACK);
-
     for (int i = 0; i < 2; i++)
     {
-        size_t buffer_size = screen->height * screen->width * sizeof(pixel_t);
-
-        screen->buffers[i] = (pixel_t *)malloc(buffer_size);
-
-        screen->active_buffer = i;
-        fill_screen_with_pixel(screen, black_pixel);
+        free(frame_buffer->buffers[i]);
     }
 
-    free(black_pixel);
-
-    screen->active_buffer = 0;
+    free(frame_buffer);
 }
 
-static void _free_buffers(screen_t *screen)
+int set_frame_pixel(
+    double_buffered_frame_t *frame_buffer,
+    int32_t x, int32_t y,
+    uint8_t color_pair_id, uint8_t character
+)
 {
-    for (int i = 0; i < 2; i++) {
-        free(screen->buffers[i]);
+    if (x > frame_buffer->width || x < 0)
+    {
+        fprintf(stderr, "Draw out of screen boundaries\n");
+        return 1;
     }
+
+    if (x > frame_buffer->height || y < 0)
+    {
+        fprintf(stderr, "Draw out of screen boundaries\n");
+        return 1;
+    }
+
+    pixel_t user_pixel = {
+        .color_pair_id = color_pair_id,
+        .character = character
+    };
+
+    frame_buffer->buffers[frame_buffer->active][y * frame_buffer->width + x] = user_pixel;
+
+    return 0;
 }
 
+pixel_change_t *form_pixel_changes(double_buffered_frame_t *frame_buffer, size_t *changes_amount)
+{
+    int cur_buffer_id = frame_buffer->active;
+    int prev_buffer_id = frame_buffer->active == 0 ? 1 : 0;
+
+    vector_t *storage = vector_init();
+
+    for (int i = 0; i < frame_buffer->height * frame_buffer->width; i++)
+    {
+        if (
+            memcmp(
+                frame_buffer->buffers[cur_buffer_id] + i,
+                frame_buffer->buffers[prev_buffer_id] + i,
+                sizeof(pixel_t)
+            )
+        )
+        {
+            pixel_change_t change = {
+                .x = i % frame_buffer->width,
+                .y = i / frame_buffer->width,
+                .pixel = frame_buffer->buffers[cur_buffer_id][i]
+            };
+
+            storage->append(storage, &change, sizeof(pixel_change_t));
+        }
+    }
+
+    frame_buffer->active = prev_buffer_id;
+    clear_frame_buffer(frame_buffer);
+
+    *changes_amount = storage->engaged / (sizeof(pixel_change_t));
+
+    pixel_change_t *res = (pixel_change_t *)malloc(storage->engaged);
+    memcpy(res, storage->buffer, storage->engaged);
+
+    vector_deinit(storage);
+
+    return res;
+}

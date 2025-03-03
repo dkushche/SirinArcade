@@ -13,7 +13,7 @@ typedef enum {
     END = 0xFF,
 } keys_t;
 
-int draw(int32_t y_pos, int32_t x_pos, uint8_t color_pair_id, uint8_t character);
+int set_pixel(int32_t y_pos, int32_t x_pos, uint8_t color_pair_id, uint8_t character);
 void render(void);
 
 int tui_io_init(void);

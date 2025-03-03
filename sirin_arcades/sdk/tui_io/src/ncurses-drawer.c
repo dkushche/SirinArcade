@@ -10,15 +10,15 @@ typedef struct screen {
 
 static screen_t screen = {0, 0};
 
-int draw(int32_t y_pos, int32_t x_pos, uint8_t color_pair_id, uint8_t character)
+int set_pixel(int32_t y_pos, int32_t x_pos, uint8_t color_pair_id, uint8_t character)
 {
-    if (x_pos >= screen.width)
+    if (x_pos >= screen.width || x_pos < 0)
     {
         fprintf(stderr, "Draw out of screen boundaries\n");
         return 1;
     }
 
-    if (y_pos >= screen.height)
+    if (y_pos >= screen.height || y_pos < 0)
     {
         fprintf(stderr, "Draw out of screen boundaries\n");
         return 1;
