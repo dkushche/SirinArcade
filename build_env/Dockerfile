@@ -40,6 +40,6 @@ ENV SIRIN_AUDIO_CARD=${SIRIN_AUDIO_CARD}
 ENV SIRIN_AUDIO_SUBDEVICE=${SIRIN_AUDIO_SUBDEVICE}
 
 COPY build_utils/rln /bin
-COPY sirin_arcades/sdk/configs/.asoundrc.tmpl /root/.asoundrc.tmpl
+COPY sirin_arcades/sdk/sound_player/resources/.asoundrc.tmpl /root/.asoundrc.tmpl
 
 RUN envsubst < /root/.asoundrc.tmpl > /root/.asoundrc

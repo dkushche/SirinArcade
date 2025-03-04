@@ -35,7 +35,7 @@ endif
 		-f build_env/Dockerfile \
 		-t $(IMAGE) .
 
-	$(call create_stamp,$@)
+	$(call create_stamp,.build_env)
 
 
 rebuild_env: clean_env $(STAMP_DIR)/.build_env
