@@ -19,4 +19,6 @@ void render(void);
 int tui_io_init(void);
 void tui_io_deinit(void);
 
+char *get_keys(void);
+
 #endif // TUI_IO_H

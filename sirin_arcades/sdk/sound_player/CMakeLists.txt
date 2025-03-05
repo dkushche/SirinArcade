@@ -42,5 +42,5 @@ add_library(${PROJECT_NAME} SHARED ${SRC})
 
 
 target_link_libraries(${PROJECT_NAME} m)
-target_link_libraries(${PROJECT_NAME} ${ALSA_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${ALSA_LIBRARY})
 target_link_libraries(${PROJECT_NAME} ${SNDFILE_LIBRARY})

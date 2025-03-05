@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
+use std::process::exit;
 use std::ptr::null_mut;
 use crate::ap_types::{ClientToServerEvent, ServerToSoTransitEvent, SoToClient};
 
@@ -14,13 +15,18 @@ pub extern "C" fn connect_to_bus() -> *mut c_void {
     println!("yeah its rust");
     let socket = match UdpSocket::bind("0.0.0.0:9877") {
         Ok(s) => { s }
-        Err(_) => { return null_mut(); }
+        Err(_) => {
+            return null_mut();
+        }
     };
-    let mut buf = [0u8; 4];
 
-    let (received, sender) = match socket.recv_from(&mut buf) {
-        Ok(a) => { a }
-        Err(_) => { return null_mut(); }
+    let mut buf = [0u8; 4];
+    let (received, sender) = {
+        let mut res = socket.recv_from(&mut buf);
+        while res.is_err() {
+            res = socket.recv_from(&mut buf);
+        };
+        res.unwrap()
     };
 
     if received != buf.len() {
@@ -32,7 +38,9 @@ pub extern "C" fn connect_to_bus() -> *mut c_void {
     let sender_addr = format!("{}:9876", sender.ip());
     let stream = match TcpStream::connect(sender_addr) {
         Ok(s) => s,
-        Err(_) => return null_mut(),
+        Err(_) => {
+            return null_mut()
+        },
     };
 
     let boxed_stream = Box::new(stream);
@@ -52,7 +60,8 @@ pub extern "C" fn cleanup_bus(bus: *mut c_void) {
 #[no_mangle]
 pub extern "C" fn send_resolution(bus: *mut c_void, width: u8, height: u8) -> i8 {
     if bus.is_null() {
-        panic!("here is your punishment, sus");
+        println!("here is your punishment, sus");
+        exit(0);
     }
 
     let stream = unsafe { &mut *(bus as *mut TcpStream) };

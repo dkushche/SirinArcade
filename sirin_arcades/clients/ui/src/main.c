@@ -11,11 +11,7 @@
 
 int main(void)
 {
-    screen_t *screen = initialze_screen();
-    if (screen == NULL)
-    {
-        return 1;
-    }
+    tui_io_init();
 
     void *busclientconnection = connect_to_bus();
 
@@ -26,7 +22,7 @@ int main(void)
     while (1) {
         {
             char *ch = get_keys();
-            while (*ch != END) {
+            while (*ch != ((char) END)) {
                 ClientToServerEvent next_message = {
                     .tag = PressedButton,
     	            .pressed_button = {
@@ -69,7 +65,7 @@ int main(void)
     the_end:
         cleanup_bus(busclientconnection);
 
-    free_screen(screen);
+    tui_io_deinit();
 
     return 0;
 
