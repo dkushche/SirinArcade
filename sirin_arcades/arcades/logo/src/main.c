@@ -33,101 +33,188 @@ void add_to_array(SoToServerTransitBack *element) {
     global_array_length = global_array_length + 1;
 }
 
-void print_hex(const uint8_t *data, size_t length)
-{
-    printf("[\n");
+//    #include <file.txt>
+char logo[][96] = {
+    "                          ++                                                                   ",
+    "                         +#                                                                    ",
+    "                         *%                                                                    ",
+    "                         %@+                                                                   ",
+    "                         %@%                                                                   ",
+    "                         *@@@+                                                                 ",
+    "                         +@@@@@@***++                                                          ",
+    "                          *@@@@@@@@@@@@@@@@@###+                                               ",
+    "                           *@@@@@@@@@@@@@@@@@@@@@@@@##=-                                       ",
+    "                            #@@@@@@@@@@@@@@@@@@@@@@@@@@@%#                                     ",
+    "                               *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%*                                ",
+    "@@@@@@@@@@%%%%#+                  +#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*                             ",
+    "@@@@@@@@@@@@@@@@@@@@@@@%#=-          -=++#@@@@@@@@@@@@@@@@@@@@@@@@@#                           ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*            +=#@@@@@@@@@@@@@@@@@@@@@#                         ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+-     -=====%@@@@@@@@@@@@@@@@@@                        ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*-      -==@@@@@@@@@@@@@@@@#                     ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@=--     @@@@@@@@@@@@@@#                    ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+- =-@@@@@@@@@@@@@+                   ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#@@@@@@@@@@@@@*=-                 ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#=-                ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%                ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#              ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*            ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%           ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*         ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+      ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%###*+              =+*##@@@@@@@@@@@@+      ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%**+                                =+#@@@@@@@@*    ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%#*+                                            =*%@@@@+    ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#*+                                                      =+%@@+   ",
+    "@@@@@@@@@@@@@@@@@@@@@@@@%*                                                                =+@=-",
+    "@@@@@@@@@@@@@@@@@@@*                                                                           ",
+    "@@@@@@@@@@@@@@@*                                                                               ",
+    "@@@@@@@@@@*                                                                                    ",
+    "@@@@@@+                                                                                        ",
+    "@@%                                                                                            ",
+    "-                                                                                              "
+};
+const size_t logo_width = sizeof(logo[0]);
+const size_t logo_height = sizeof(logo)/logo_width;
+#define RANDOM_COLOR_PAIR 3
+#define NORMAL_COLOR_PAIR 0
 
-    for (size_t i = 0; i < length; i++)
-    {
-        printf("%02X", data[i]);
-        if (i < length - 1)
-        {
-            printf(", ");
+void add_logo(size_t offset_x, size_t offset_y) {
+    for (size_t y = 0; y < logo_height; y++) {
+        const char *line = logo[y];
+        for (size_t x = 0; line[x] != '\0'; x++) {
+            if (line[x] != ' ') {
+                SoToServerTransitBack event_to_client = {
+                    .tag = ToClient,
+                    .to_client = {
+                        .tag = DrawPixel,
+                        .draw_pixel = {
+                            .x = offset_x + x,
+                    	    .y = offset_y + y,
+                        	.pixel_t = {
+                            	.character = (uint8_t)line[x],
+                            	.color_pair_id = NORMAL_COLOR_PAIR
+                        	}
+                    	}
+                	}
+                };
+                add_to_array(&event_to_client);
+            }
         }
     }
+}
 
-    printf("]\n");
+static bool is_special_char(const char c) {
+    return c == '-' || c == '=' || c == '+' || c == '#' || c == '@' || c == '*' || c == '%';
+}
+
+int gcd(int a, int b)
+{
+    int temp;
+    while (b != 0)
+    {
+        temp = a % b;
+
+        a = b;
+        b = temp;
+    }
+    return a;
+}
+
+int find_random_k(int n) {
+    int k;
+    do {
+        k = rand() % n;
+    } while (k == 0 || gcd(k, n) != 1);
+    return k;
+}
+
+int get_next_victim() {
+	static int gcd_place = -1;
+	if (gcd_place == -1) {
+    	gcd_place = find_random_k(logo_height * logo_width);
+        if (gcd_place == -1) {
+        	printf("FUUUCK\n"); //
+            exit(0);
+        }
+	}
+	static int x = 0;
+    static int starting_num = 0; // має бути тей що і x
+
+    int result = x;
+    x = (x + gcd_place) % (logo_height * logo_width);
+	if (x == starting_num) { // todo не працює
+		return -1;
+	}
+
+    return result;
+}
+
+int iteration = 0;
+static void add_random_logo_pixels_changes(size_t offset_x, size_t offset_y, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        size_t y, x;
+        char ch;
+
+//        y = rand() % logo_height;
+//        x = rand() % logo_width;
+        int victim = get_next_victim();
+//        if (victim == -1) {
+//        	iteration = 100000 - 1;
+//            return;
+//        }
+        y = victim / logo_width;
+        x = victim % logo_width;
+        ch = logo[y][x];
+        if (!is_special_char(ch)) {
+          	i--;
+            continue;
+        }
+
+		SoToServerTransitBack event_to_client = {
+            .tag = ToClient,
+            .to_client = {
+                .tag = DrawPixel,
+                .draw_pixel = {
+                    .x = x,
+            	    .y = y,
+                	.pixel_t = {
+                    	.character = ch,
+                    	.color_pair_id = RANDOM_COLOR_PAIR
+                	}
+            	}
+        	}
+		};
+		add_to_array(&event_to_client);
+    }
 }
 
 SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
                                       size_t length)
 {
-    printf("so starting handling events\n");
     global_array_length = 0;
-    for (size_t i = 0; i < length; i++)
-    {
-        printf("Event %zu:\n", i);
-        printf("  client_id: ");
-        print_hex(first_event[i].client_id, SOCKET_ADDR_SIZE);
-        printf("\n");
 
-        // Дебаг інформація про underlying_event
-        print_server_to_so_transit_event(first_event + i);
+	if (iteration == 0) {
+		add_logo(0,0);
+   	}
+    if (iteration == 100000) {
+		SoToServerTransitBack event_end = {
+        	.tag = ToServer,
+        	.to_server = {
+            	.tag = GoToState,
+            	.go_to_state = Menu
+        	}
+    	};
+        add_to_array(&event_end);
+	} else {
+		add_random_logo_pixels_changes(0,0,1);
+	}
 
-        bool is_client_id = false;
-
-        for (size_t j = 0; j < SOCKET_ADDR_SIZE; j++) {
-            if (first_event[j].client_id[j] != 0) {
-                is_client_id = true;
-                break;
-            }
-        }
-
-        if (is_client_id) {
-            ClientToServerEvent_Tag client_event_tag = first_event[i].underlying_event.client_event.tag;
-
-            switch (client_event_tag) {
-                case PressedButton:
-                    printf(
-                        "got button %u\n",
-                        first_event[i].underlying_event.client_event.pressed_button.button
-                    );
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
-            }
-        }
-        else
-        {
-            ServerToSoEvent_Tag server_event_tag = first_event[i].underlying_event.server_event.tag;
-
-            switch (server_event_tag) {
-                case NewConnectionId:
-                    printf(
-                        "got new connection id %u\n",
-                        first_event[i].underlying_event.server_event.new_connection_id.id
-                    );
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
-            }
-        }
-    }
-
-    SoToServerTransitBack event_to_client = {
-        .tag = ToClient,
-        .to_client = {
-            .tag = DrawPixel,
-            .draw_pixel = {
-                .x = 10,
-                .y = 15,
-                .pixel_t = {
-                    .character = (uint8_t)(48 + (rand() % 42)),
-                    .color_pair_id = 2
-                }
-            }
-        }
-    };
-
-    add_to_array(&event_to_client);
     SoToServerTransitBackArray array = {
         .first_element = global_array,
         .length = global_array_length,
     };
-    printf("so finished handling events\n");
 
-    sleep(1);
+    iteration++;
     return array;
 }

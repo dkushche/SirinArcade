@@ -11,7 +11,7 @@ pub extern "C" fn print_server_to_so_transit_event(event: &ServerToSoTransitEven
 }
 
 #[no_mangle]
-pub extern "C" fn connect_to_bus() -> *mut c_void {
+pub extern "C" fn connect_to_bus(width: i32, height: i32) -> *mut c_void {
     println!("yeah its rust");
     let socket = match UdpSocket::bind("0.0.0.0:9877") {
         Ok(s) => { s }
@@ -28,6 +28,15 @@ pub extern "C" fn connect_to_bus() -> *mut c_void {
         };
         res.unwrap()
     };
+
+    if buf[1] != ';' as u8 || buf[3] != ';' as u8 { //todo
+        eprintln!("promises are broken. (format must be like 131;112;). BUT YOU GAVE THIS ABOMINATION {:?}", buf.as_slice());
+        return null_mut();
+    }
+    if buf[0] > width as u8 || buf[2] > height as u8 { //todo u8 -> u32 // потенційно зберігти отримане для подальшого оффсету
+        eprintln!("found server with bigger resolution than current screen. (buf[0]: {}, buf[2]: {}, width: {width}, height: {height})", buf[0], buf[2]);
+        return null_mut();
+    }
 
     if received != buf.len() {
         return null_mut()

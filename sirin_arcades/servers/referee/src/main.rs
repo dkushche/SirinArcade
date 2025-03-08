@@ -119,45 +119,21 @@ impl GameServer {
                 loop {
                     sleep(Duration::from_secs(2)).await;
                     println!("sent");
+                    let to_send = [180u8, ';' as u8, 48u8, ';' as u8]; //todo constants and another values
                     cloned_beacon_socket
-                        .send("0;0;".as_bytes())
+                        .send(to_send.as_slice()) //todo 48 ->54
                         .await
                         .expect("socket not connected");
                 }
             });
 
-            loop {
-                let (mut tcp_stream, addr) = self.listener.accept().await.unwrap();
+            let (mut tcp_stream, addr) = self.listener.accept().await.unwrap();
+            let (read_half, write_half) = tcp_stream.into_split();
 
-                let mut buffer = [0u8; WINDOW_RESOLUTION_SIZE];
-                match tcp_stream.read_exact(&mut buffer).await {
-                    Ok(0) => {
-                        println!("Client {} disconnected.", addr);
-                        todo!("do not forget about possibility of timed out or conn closing");
-                    }
-                    Ok(WINDOW_RESOLUTION_SIZE) => {
-                        let width = buffer[0];
-                        let height = buffer[1];
-                        println!("{width}, {height}");
-                        {
-                            let (read_half, write_half) = tcp_stream.into_split();
+            self.clients_connections_read_halfs.lock().await.insert(addr, read_half);
+            self.clients_connections_write_halfs.insert(addr, write_half);
 
-                            self.clients_connections_read_halfs.lock().await.insert(addr, read_half);
-                            self.clients_connections_write_halfs.insert(addr, write_half);
-                        }
-
-                        self.state = RunLogoSystemAsset;
-
-                        break;
-                    }
-                    Ok(_n) => {
-                        todo!("this match arm represents possibility of sending something with less size than needed (1 at the moment this comment was written...)")
-                    }
-                    Err(e) => {
-                        println!("Error reading from {}: {}", addr, e);
-                    }
-                }
-            }
+            self.state = RunLogoSystemAsset;
 
             udp_client_thread_join_handle.abort();
             Ok(())
@@ -234,7 +210,6 @@ impl GameServer {
 
             let mut so_to_server_transit_events = None;
             loop {
-                println!("sending events from clients to so");
                 let result = {
                     let copy =
                         {
@@ -242,12 +217,13 @@ impl GameServer {
                             guard.drain(..).collect::<Vec<_>>()
                         };
 
-                    println!("{copy:?}");
+                    // println!("{copy:?}");
                     unsafe { (lib.game_frame_fn)(copy.as_ptr(), copy.len()) }
                 };
                 if so_to_server_transit_events.is_none() {
                     so_to_server_transit_events = Some(result.first_element);
                 }
+                tokio::time::sleep(Duration::from_millis(1)).await;
 
                 println!("beginning transit so -> client");
 
@@ -257,14 +233,17 @@ impl GameServer {
                         SoToServerTransitBack::ToClient(so_to_client) => {
                             for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
                                 // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
-
+                                println!("sent this event {:?}", so_to_client);
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
                                 unsafe { write_conn.write_all(std::slice::from_raw_parts(so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
-                                println!("sent so to client ");
                             }
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
                             // idk
+                            loop {
+                                tokio::time::sleep(Duration::from_millis(1000)).await;
+                            }
+                            unimplemented!("To state ")
                         }
                         _ => {
                             panic!("you are punished");
