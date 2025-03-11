@@ -129,7 +129,7 @@ impl GameServer {
 
             let (mut tcp_stream, addr) = self.listener.accept().await.unwrap();
             let (read_half, write_half) = tcp_stream.into_split();
-
+            //todo make handshake 0u8
             self.clients_connections_read_halfs.lock().await.insert(addr, read_half);
             self.clients_connections_write_halfs.insert(addr, write_half);
 

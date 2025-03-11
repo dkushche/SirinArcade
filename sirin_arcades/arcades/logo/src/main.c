@@ -5,7 +5,6 @@
 
 #include <events_bus.h>
 
-
 SoToServerTransitBack *global_array = NULL;
 size_t global_array_capacity = 0;
 size_t global_array_length = 0;
@@ -33,7 +32,7 @@ void add_to_array(SoToServerTransitBack *element) {
     global_array_length = global_array_length + 1;
 }
 
-//    #include <file.txt>
+//    #include <file.txt> todo
 char logo[][96] = {
     "                          ++                                                                   ",
     "                         +#                                                                    ",
@@ -79,7 +78,7 @@ const size_t logo_height = sizeof(logo)/logo_width;
 #define RANDOM_COLOR_PAIR 3
 #define NORMAL_COLOR_PAIR 0
 
-void add_logo(size_t offset_x, size_t offset_y) {
+void add_logo(size_t offset_x, size_t offset_y) { //todo без офсетів (і вище)
     for (size_t y = 0; y < logo_height; y++) {
         const char *line = logo[y];
         for (size_t x = 0; line[x] != '\0'; x++) {
