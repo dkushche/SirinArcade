@@ -78,7 +78,7 @@ const size_t logo_height = sizeof(logo)/logo_width;
 #define RANDOM_COLOR_PAIR 3
 #define NORMAL_COLOR_PAIR 0
 
-void add_logo(size_t offset_x, size_t offset_y) { //todo без офсетів (і вище)
+void add_logo() {
     for (size_t y = 0; y < logo_height; y++) {
         const char *line = logo[y];
         for (size_t x = 0; line[x] != '\0'; x++) {
@@ -88,8 +88,8 @@ void add_logo(size_t offset_x, size_t offset_y) { //todo без офсетів (
                     .to_client = {
                         .tag = DrawPixel,
                         .draw_pixel = {
-                            .x = offset_x + x,
-                    	    .y = offset_y + y,
+                            .x = x,
+                    	    .y = y,
                         	.pixel_t = {
                             	.character = (uint8_t)line[x],
                             	.color_pair_id = NORMAL_COLOR_PAIR
@@ -121,6 +121,7 @@ int gcd(int a, int b)
 }
 
 int find_random_k(int n) {
+  	srand(time(NULL));
     int k;
     do {
         k = rand() % n;
@@ -133,7 +134,7 @@ int get_next_victim() {
 	if (gcd_place == -1) {
     	gcd_place = find_random_k(logo_height * logo_width);
         if (gcd_place == -1) {
-        	printf("FUUUCK\n"); //
+        	//
             exit(0);
         }
 	}
@@ -142,7 +143,7 @@ int get_next_victim() {
 
     int result = x;
     x = (x + gcd_place) % (logo_height * logo_width);
-	if (x == starting_num) { // todo не працює
+	if (x == starting_num) {
 		return -1;
 	}
 
@@ -150,18 +151,16 @@ int get_next_victim() {
 }
 
 int iteration = 0;
-static void add_random_logo_pixels_changes(size_t offset_x, size_t offset_y, size_t count) {
+static void add_random_logo_pixels_changes(size_t count) {
     for (size_t i = 0; i < count; i++) {
         size_t y, x;
         char ch;
 
-//        y = rand() % logo_height;
-//        x = rand() % logo_width;
         int victim = get_next_victim();
-//        if (victim == -1) {
-//        	iteration = 100000 - 1;
-//            return;
-//        }
+        if (victim == -1) {
+        	iteration =  -1;
+            return;
+        }
         y = victim / logo_width;
         x = victim % logo_width;
         ch = logo[y][x];
@@ -194,19 +193,19 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
     global_array_length = 0;
 
 	if (iteration == 0) {
-		add_logo(0,0);
-   	}
-    if (iteration == 100000) {
-		SoToServerTransitBack event_end = {
-        	.tag = ToServer,
-        	.to_server = {
-            	.tag = GoToState,
-            	.go_to_state = Menu
-        	}
-    	};
-        add_to_array(&event_end);
-	} else {
-		add_random_logo_pixels_changes(0,0,1);
+		add_logo();
+   	} else {
+		add_random_logo_pixels_changes(1);
+        if (iteration == -1) {
+			SoToServerTransitBack event_end = {
+       		 	.tag = ToServer,
+       		 	.to_server = {
+       		     	.tag = GoToState,
+      		      	.go_to_state = Menu
+      		  	}
+    		};
+        	add_to_array(&event_end);
+		}
 	}
 
     SoToServerTransitBackArray array = {

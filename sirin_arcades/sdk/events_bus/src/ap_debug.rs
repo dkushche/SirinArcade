@@ -67,7 +67,7 @@ pub extern "C" fn cleanup_bus(bus: *mut c_void) {
 }
 
 #[no_mangle]
-pub extern "C" fn send_resolution(bus: *mut c_void, width: u8, height: u8) -> i8 {
+pub extern "C" fn make_handshake(bus: *mut c_void) -> i8 {
     if bus.is_null() {
         println!("here is your punishment, sus");
         exit(0);
@@ -75,7 +75,7 @@ pub extern "C" fn send_resolution(bus: *mut c_void, width: u8, height: u8) -> i8
 
     let stream = unsafe { &mut *(bus as *mut TcpStream) };
 
-    if let Err(_) = stream.write_all(&[width, height]) {
+    if let Err(_) = stream.write_all(&[0u8]) {
         return -1;
     }
 

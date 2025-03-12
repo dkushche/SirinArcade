@@ -68,7 +68,7 @@ int main(void)
 
     void *busclientconnection = connect_to_bus(screen->width, screen->height);
 
-    // todo make_handshake(busclientconnection)  sending 0u8
+    make_handshake(busclientconnection); // possibly failed
 
     while (1) {
         send_keys(busclientconnection);

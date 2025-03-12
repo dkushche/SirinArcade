@@ -128,8 +128,20 @@ impl GameServer {
             });
 
             let (mut tcp_stream, addr) = self.listener.accept().await.unwrap();
-            let (read_half, write_half) = tcp_stream.into_split();
-            //todo make handshake 0u8
+            let (mut read_half, write_half) = tcp_stream.into_split();
+
+            let mut handshake_buf = [0u8; 1];
+            match read_half.read_exact(&mut handshake_buf).await {
+                Err(_) | Ok(0) => {
+                    panic!()
+                } // todo connection closed
+                Ok(_) => {
+                    if handshake_buf[0] != 0 { // todo handshake incorrect
+                        panic!()
+                    }
+                }
+            }
+
             self.clients_connections_read_halfs.lock().await.insert(addr, read_half);
             self.clients_connections_write_halfs.insert(addr, write_half);
 
@@ -223,6 +235,8 @@ impl GameServer {
                 if so_to_server_transit_events.is_none() {
                     so_to_server_transit_events = Some(result.first_element);
                 }
+                // todo redo into some_amount frames per second and change amount of sent changed pixels per game_frame call
+                //  new consts: 30 = frame rate per seconds, draw logo in 3 secs
                 tokio::time::sleep(Duration::from_millis(1)).await;
 
                 println!("beginning transit so -> client");
@@ -240,9 +254,6 @@ impl GameServer {
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
                             // idk
-                            loop {
-                                tokio::time::sleep(Duration::from_millis(1000)).await;
-                            }
                             unimplemented!("To state ")
                         }
                         _ => {
