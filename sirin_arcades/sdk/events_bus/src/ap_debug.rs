@@ -12,7 +12,6 @@ pub extern "C" fn print_server_to_so_transit_event(event: &ServerToSoTransitEven
 
 #[no_mangle]
 pub extern "C" fn connect_to_bus(width: i32, height: i32) -> *mut c_void {
-    println!("yeah its rust");
     let socket = match UdpSocket::bind("0.0.0.0:9877") {
         Ok(s) => { s }
         Err(_) => {
@@ -69,8 +68,7 @@ pub extern "C" fn cleanup_bus(bus: *mut c_void) {
 #[no_mangle]
 pub extern "C" fn make_handshake(bus: *mut c_void) -> i8 {
     if bus.is_null() {
-        println!("here is your punishment, sus");
-        exit(0);
+        return -2;
     }
 
     let stream = unsafe { &mut *(bus as *mut TcpStream) };

@@ -1,9 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include <arpa/inet.h>
 #include <stdio.h>
-#include <memory.h>
 
 #include <events_bus.h>
 #include <tui_io.h>
@@ -33,8 +31,12 @@ static bool receive_message(void *busclientconnection) {
                 break;
     	    case PlayResource:
 	            void *sound = NULL;
-                // todo resolve received_message.play_resource.data and play_wave result
-            	play_wave(received_message.play_resource.data, false, &sound); // not sure if it is the right usage
+                char *resolved_path = resolve_resource(received_message.play_resource.data);
+                if (resolved_path == NULL) {
+                	fprintf(stderr, "Program can not continue executing due to problem with playing resource not present on machine");
+                    return false;
+                }
+            	play_wave(resolved_path, false, &sound); // not sure if it is the right usage
             	break;
         	case CleanResources:
             	clean_resources();
@@ -62,13 +64,21 @@ int main(void)
 {
     screen_t *screen = tui_io_init();
     if (screen == NULL) {
-    	//todo panic
-        exit(0);
+        fprintf(stderr, "Program can not continue executing due to problem with screen initing");
+        exit(1);
     }
 
     void *busclientconnection = connect_to_bus(screen->width, screen->height);
+    if (busclientconnection == NULL) {
+        fprintf(stderr, "Program can not continue executing due to problem with connecting to server");
+        exit(1);
+    }
 
-    make_handshake(busclientconnection); // possibly failed
+    int8_t handshake_result = make_handshake(busclientconnection);
+	if (handshake_result != NULL) {
+		fprintf(stderr, "Program can not continue executing due to problem with handshake, problem code: %d", handshake_result);
+		goto the_end;
+	}
 
     while (1) {
         send_keys(busclientconnection);
