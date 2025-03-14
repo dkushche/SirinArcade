@@ -61,6 +61,20 @@ struct RunningLibrary {
     ) -> SoToServerTransitBackArray,
 }
 
+macro_rules! write_sotoclient {
+    ($write_conn:expr, $so_to_client:expr) => {
+        unsafe {
+            $write_conn
+                .write_all(std::slice::from_raw_parts(
+                    &$so_to_client as *const _ as *const u8,
+                    std::mem::size_of::<SoToClient>(),
+                ))
+                .await
+                .unwrap();
+        }
+    };
+}
+
 impl RunningLibrary {
     fn new(assets_dir: &str, path_from_assets: &str) -> RunningLibrary {
         // example for path: system/logo/libexample"
@@ -279,15 +293,7 @@ impl GameServer {
                                 // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
                                 println!("sent this event {:?}", so_to_client);
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                                unsafe {
-                                    write_conn
-                                        .write_all(std::slice::from_raw_parts(
-                                            so_to_client as *const SoToClient as *const u8, //todo duplicating write of sotoclient
-                                            size_of::<SoToClient>(),
-                                        ))
-                                        .await
-                                        .unwrap();
-                                }
+                                write_sotoclient!(write_conn, so_to_client);
                             }
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
@@ -305,16 +311,8 @@ impl GameServer {
             let so_to_client = SoToClient::CleanResources;
             for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                unsafe {
-                    write_conn
-                        .write_all(std::slice::from_raw_parts(
-                            &so_to_client as *const SoToClient as *const u8,
-                            size_of::<SoToClient>(),
-                        ))
-                        .await
-                        .unwrap();
-                }
-                println!("sent so to client ");
+                write_sotoclient!(write_conn, so_to_client);
+                // println!("sent so to client ");
             }
 
             returning_readers.store(true, Ordering::Release);
