@@ -144,10 +144,15 @@ impl GameServer {
         if let State::PendingFirstPlayer = &self.state {
             let cloned_beacon_socket = Arc::clone(&self.beacon_socket);
             let udp_client_thread_join_handle = tokio::spawn(async move {
+                let mut to_send = 180i32.to_be_bytes().to_vec(); //todo constants and another values, and also do not forget about endianness
+                to_send.push(';' as u8);
+                to_send.extend_from_slice(&48i32.to_be_bytes());
+                to_send.push(';' as u8);
+
                 loop {
                     sleep(Duration::from_secs(2)).await;
                     println!("sent");
-                    let to_send = [180u8, ';' as u8, 48u8, ';' as u8]; //todo constants and another values
+
                     cloned_beacon_socket
                         .send(to_send.as_slice()) //todo 48 ->54
                         .await
@@ -293,7 +298,16 @@ impl GameServer {
                                 // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
                                 println!("sent this event {:?}", so_to_client);
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                                write_sotoclient!(write_conn, so_to_client);
+                                // write_sotoclient!(write_conn, so_to_client);
+                                unsafe {
+                                    write_conn
+                                        .write_all(std::slice::from_raw_parts(
+                                            &so_to_client as *const _ as *const u8,
+                                            std::mem::size_of::<SoToClient>(),
+                                        ))
+                                        .await
+                                        .unwrap();
+                                }
                             }
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
@@ -311,7 +325,16 @@ impl GameServer {
             let so_to_client = SoToClient::CleanResources;
             for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                write_sotoclient!(write_conn, so_to_client);
+                // write_sotoclient!(write_conn, so_to_client);
+                unsafe {
+                    write_conn
+                        .write_all(std::slice::from_raw_parts(
+                            &so_to_client as *const _ as *const u8,
+                            std::mem::size_of::<SoToClient>(),
+                        ))
+                        .await
+                        .unwrap();
+                }
                 // println!("sent so to client ");
             }
 

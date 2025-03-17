@@ -19,21 +19,26 @@ pub extern "C" fn connect_to_bus(width: i32, height: i32) -> *mut c_void {
         }
     };
 
-    let mut buf = [0u8; 4];
+    let mut buf = [0u8; 10];
     let (received, sender) = {
         let mut res = socket.recv_from(&mut buf);
         while res.is_err() {
             res = socket.recv_from(&mut buf);
         };
         res.unwrap()
+        // паніка якщо red не співпадає з довжиною буфера?
     };
 
-    if buf[1] != ';' as u8 || buf[3] != ';' as u8 { //todo
+    if buf[4] != ';' as u8 || buf[9] != ';' as u8 { //todo
         eprintln!("promises are broken. (format must be like 131;112;). BUT YOU GAVE THIS ABOMINATION {:?}", buf.as_slice());
         return null_mut();
     }
-    if buf[0] > width as u8 || buf[2] > height as u8 { //todo u8 -> u32 // потенційно зберігти отримане для подальшого оффсету
-        eprintln!("found server with bigger resolution than current screen. (buf[0]: {}, buf[2]: {}, width: {width}, height: {height})", buf[0], buf[2]);
+    let got_width = i32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]);
+    let got_height = i32::from_be_bytes([buf[5], buf[6], buf[7], buf[8]]);
+    //temp
+    eprintln!("got_width: {got_width}, got_height: {got_height}");
+    if got_width > width || got_height > height { // потенційно зберігти отримане для подальшого оффсету
+        eprintln!("found server with bigger resolution than current screen. (got_width: {got_width}, got_height: {got_height}, width: {width}, height: {height})");
         return null_mut();
     }
 

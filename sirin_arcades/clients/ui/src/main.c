@@ -19,6 +19,10 @@ static bool receive_message(void *busclientconnection) {
 
     switch (received_message.tag) {
         	case DrawPixel:
+                //temp
+                fprintf(stderr, "%d %d %c \n", received_message.draw_pixel.y,
+                      received_message.draw_pixel.x,
+                      received_message.draw_pixel.pixel_t.character);
             	set_pixel(received_message.draw_pixel.y,
                       received_message.draw_pixel.x,
                       received_message.draw_pixel.pixel_t.color_pair_id,
@@ -90,6 +94,7 @@ int main(void)
 
     the_end:
         cleanup_bus(busclientconnection);
+        fprintf(stderr, "Program finishing its execution");
 
     tui_io_deinit();
 
