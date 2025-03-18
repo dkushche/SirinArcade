@@ -61,20 +61,6 @@ struct RunningLibrary {
     ) -> SoToServerTransitBackArray,
 }
 
-macro_rules! write_sotoclient {
-    ($write_conn:expr, $so_to_client:expr) => {
-        unsafe {
-            $write_conn
-                .write_all(std::slice::from_raw_parts(
-                    &$so_to_client as *const _ as *const u8,
-                    std::mem::size_of::<SoToClient>(),
-                ))
-                .await
-                .unwrap();
-        }
-    };
-}
-
 impl RunningLibrary {
     fn new(assets_dir: &str, path_from_assets: &str) -> RunningLibrary {
         // example for path: system/logo/libexample"

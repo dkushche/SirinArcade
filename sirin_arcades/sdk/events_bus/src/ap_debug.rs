@@ -26,18 +26,16 @@ pub extern "C" fn connect_to_bus(width: i32, height: i32) -> *mut c_void {
             res = socket.recv_from(&mut buf);
         };
         res.unwrap()
-        // паніка якщо red не співпадає з довжиною буфера?
+        // todo паніка якщо red не співпадає з довжиною буфера?
     };
 
-    if buf[4] != ';' as u8 || buf[9] != ';' as u8 { //todo
+    if buf[4] != ';' as u8 || buf[9] != ';' as u8 {
         eprintln!("promises are broken. (format must be like 131;112;). BUT YOU GAVE THIS ABOMINATION {:?}", buf.as_slice());
         return null_mut();
     }
-    let got_width = i32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]);
+    let got_width = i32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]); // потенційно зберігти отримане для подальшого оффсету
     let got_height = i32::from_be_bytes([buf[5], buf[6], buf[7], buf[8]]);
-    //temp
-    eprintln!("got_width: {got_width}, got_height: {got_height}");
-    if got_width > width || got_height > height { // потенційно зберігти отримане для подальшого оффсету
+    if got_width > width || got_height > height {
         eprintln!("found server with bigger resolution than current screen. (got_width: {got_width}, got_height: {got_height}, width: {width}, height: {height})");
         return null_mut();
     }
