@@ -8,7 +8,10 @@ use libloading::Library;
 use std::collections::HashMap;
 use std::env;
 use std::ffi::c_void;
+use std::fs::FileType;
+use std::mem::transmute;
 use std::net::SocketAddr;
+use std::path::{Path, StripPrefixError};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -45,6 +48,7 @@ enum State {
     RunLogoSystemAsset,
     RunMenuSystemAsset,
     RunLobbySystemAsset,
+    RunGame,
 }
 
 const SYSTEM_ARCADES_LOGO_PATH: &str = "liblogo_arcade";
@@ -122,6 +126,7 @@ impl GameServer {
                 State::RunLogoSystemAsset => self.handle_run_logo_system_asset().await,
                 State::RunMenuSystemAsset => self.handle_run_menu_system_asset().await,
                 State::RunLobbySystemAsset => self.handle_run_lobby_system_asset().await,
+                State::RunGame => self.handle_run_game().await,
             }.unwrap();
         }
     }
@@ -183,14 +188,28 @@ impl GameServer {
             let lib = RunningLibrary::new(self.assets_dir.as_str(), SYSTEM_ARCADES_LOGO_PATH);
             let clients_events_buf: Arc<Mutex<Vec<ServerToSoTransitEvent>>> =
                 Arc::new(Mutex::new(Vec::new()));
-            // todo в усіх стейтах взяти /etc/sirin_arcades/arcades_resources/ logo/{game_name} папку, і відправити івентаи завантаження ресурсі з env({server}) + "/logo/intro.wav"
-            for entry in WalkDir::new("/etc/sirin_arcades/arcades_resources/logo")
+            for entry in WalkDir::new("/sirin_arcades/arcades/logo/resources/") //todo possibly not this folder and logic may be changed with other folder
                 .into_iter()
-                .filter_map(|e| e.ok())
+                .filter_map(|e| e.ok().and_then(|ret| ret.file_type().is_file().then_some(ret)))
             {
-                // пропустить наприклад папки ті до яких не має доступу
-                println!("{:?}", entry.path()); // todo somehow get data, write to array and send to users ;/
-                // let so_to_client = SoToClient::LoadResource { data: [] };
+                let mut base_end = String::from(self.supplier_addr.as_str());
+                match entry.path().strip_prefix("/sirin_arcades/arcades").map(|path| path.to_str()) {
+                    Ok(Some(path)) => { base_end.push_str(path) }
+                    _ => { continue; }
+                }
+                //base end example http://127.0.0.1:5589/logo/resources/intro.wav
+                println!("{}", base_end); // todo somehow get data, write to array and send to users ;/
+
+                if base_end.len() > 99 {  // because LoadResource data is 100 bytes array
+                    continue;
+                }
+
+                let mut buffer = [0u8; 100];
+                buffer[base_end.len()] = 0;
+                buffer[..base_end.len()].copy_from_slice(base_end.as_bytes());
+                let so_to_client = SoToClient::LoadResource { data: unsafe { transmute(buffer) } }; // untested
+                println!("{so_to_client:?}");
+
                 // for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
                 //     // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
                 //     unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
@@ -357,7 +376,13 @@ impl GameServer {
         }
     }
 
-    // todo game state
+    async fn handle_run_game(&mut self) -> Result<(), StateError> {
+        if let State::RunGame = &self.state {
+            todo!()
+        } else {
+            Err(StateError::OtherStateRequired)
+        }
+    }
 }
 
 #[tokio::main]

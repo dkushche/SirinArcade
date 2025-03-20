@@ -1,7 +1,6 @@
 use std::ffi::c_void;
 use std::io::{Read, Write};
 use std::net::{TcpStream, UdpSocket};
-use std::process::exit;
 use std::ptr::null_mut;
 use crate::ap_types::{ClientToServerEvent, ServerToSoTransitEvent, SoToClient};
 
@@ -26,8 +25,12 @@ pub extern "C" fn connect_to_bus(width: i32, height: i32) -> *mut c_void {
             res = socket.recv_from(&mut buf);
         };
         res.unwrap()
-        // todo паніка якщо red не співпадає з довжиною буфера?
     };
+
+    if received != buf.len() {
+        eprintln!("promises are broken. client expected exactly 10 bytes broadcast message");
+        return null_mut();
+    }
 
     if buf[4] != ';' as u8 || buf[9] != ';' as u8 {
         eprintln!("promises are broken. (format must be like 131;112;). BUT YOU GAVE THIS ABOMINATION {:?}", buf.as_slice());

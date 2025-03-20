@@ -55,7 +55,7 @@ pub enum SoToServerEvent {
 #[repr(C)]
 #[derive(Debug)]
 pub enum SoToClient {
-    DrawPixel { x: u8, y: u8, pixel_t: pixel_t_rust_t }, //todo i32
+    DrawPixel { x: i32, y: i32, pixel_t: pixel_t_rust_t },
     LoadResource { data: [c_char; 100] },
     PlayResource { data: [c_char; 100] },
     CleanResources,
