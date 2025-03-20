@@ -13,10 +13,11 @@
 
 #define BUFFER_SIZE 4096
 
-typedef struct thread_arg {
+typedef struct thread_arg
+{
     bool restart_on_end;
     atomic_bool stop_rn;
-    char* path;
+    char *path;
 
     short *buffer;
     snd_pcm_t *pcm_handle;
@@ -55,7 +56,7 @@ void *start_playing(void *arg)
     given_to_thread_data->sndfile = sndfile;
 
     int channels = sfinfo.channels;
-    unsigned int rate = (unsigned int) sfinfo.samplerate;
+    unsigned int rate = (unsigned int)sfinfo.samplerate;
 
     snd_pcm_hw_params_t *params;
 
@@ -87,7 +88,8 @@ void *start_playing(void *arg)
     }
     //  snd_pcm_hw_params_set_period_size_near(pcm_handle, params, &frames, &dir);
 
-    //  fprintf(stderr, "Sample rate: %d, Channels: %d, Format: %d\n", sfinfo.samplerate, sfinfo.channels, sfinfo.format);
+    //  fprintf(stderr, "Sample rate: %d, Channels: %d, Format: %d\n", sfinfo.samplerate,
+    //  sfinfo.channels, sfinfo.format);
 
     if (snd_pcm_hw_params(pcm_handle, params) < 0)
     {
@@ -165,7 +167,7 @@ int play_wave(char *path, bool cycled, void **sound)
     arg->path = path;
     arg->stop_rn = false;
 
-    int result = pthread_create(&thread, NULL, start_playing, (void*)arg);
+    int result = pthread_create(&thread, NULL, start_playing, (void *)arg);
 
     if (result != 0)
     {
@@ -182,17 +184,19 @@ int free_wave(void **sound)
 {
     if (sound == NULL)
     {
-        fprintf(stderr, "error: you was saved from null pointer dereferencing in free_wave function");
+        fprintf(stderr,
+                "error: you was saved from null pointer dereferencing in free_wave function");
         return 1;
     }
 
     if (*sound == NULL)
     {
-        fprintf(stderr, "error: you was saved from null pointer dereferencing in free_wave function");
+        fprintf(stderr,
+                "error: you was saved from null pointer dereferencing in free_wave function");
         return 2;
     }
 
-    thread_arg_t *data = (thread_arg_t*)(*sound);
+    thread_arg_t *data = (thread_arg_t *)(*sound);
 
     atomic_store(&(data->stop_rn), true);
 

@@ -18,8 +18,10 @@ char *get_keys(void)
         vec = vector_init();
     }
 
-    while ((ch = getch()) != EOF) {
-        if (ch == W || ch == A || ch == S || ch == D || ch == SPACE || ch == C) {
+    while ((ch = getch()) != EOF)
+    {
+        if (ch == W || ch == A || ch == S || ch == D || ch == SPACE || ch == C)
+        {
             vec->append(vec, &ch, sizeof(char));
         }
     }

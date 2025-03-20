@@ -13,8 +13,8 @@ use std::mem::transmute;
 use std::net::SocketAddr;
 use std::path::{Path, StripPrefixError};
 use std::str::FromStr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
@@ -127,7 +127,8 @@ impl GameServer {
                 State::RunMenuSystemAsset => self.handle_run_menu_system_asset().await,
                 State::RunLobbySystemAsset => self.handle_run_lobby_system_asset().await,
                 State::RunGame => self.handle_run_game().await,
-            }.unwrap();
+            }
+            .unwrap();
         }
     }
 
@@ -190,24 +191,36 @@ impl GameServer {
                 Arc::new(Mutex::new(Vec::new()));
             for entry in WalkDir::new("/sirin_arcades/arcades/logo/resources/") //todo possibly not this folder and logic may be changed with other folder
                 .into_iter()
-                .filter_map(|e| e.ok().and_then(|ret| ret.file_type().is_file().then_some(ret)))
+                .filter_map(|e| {
+                    e.ok()
+                        .and_then(|ret| ret.file_type().is_file().then_some(ret))
+                })
             {
                 let mut base_end = String::from(self.supplier_addr.as_str());
-                match entry.path().strip_prefix("/sirin_arcades/arcades").map(|path| path.to_str()) {
-                    Ok(Some(path)) => { base_end.push_str(path) }
-                    _ => { continue; }
+                match entry
+                    .path()
+                    .strip_prefix("/sirin_arcades/arcades")
+                    .map(|path| path.to_str())
+                {
+                    Ok(Some(path)) => base_end.push_str(path),
+                    _ => {
+                        continue;
+                    }
                 }
                 //base end example http://127.0.0.1:5589/logo/resources/intro.wav
                 println!("{}", base_end); // todo somehow get data, write to array and send to users ;/
 
-                if base_end.len() > 99 {  // because LoadResource data is 100 bytes array
+                if base_end.len() > 99 {
+                    // because LoadResource data is 100 bytes array
                     continue;
                 }
 
                 let mut buffer = [0u8; 100];
                 buffer[base_end.len()] = 0;
                 buffer[..base_end.len()].copy_from_slice(base_end.as_bytes());
-                let so_to_client = SoToClient::LoadResource { data: unsafe { transmute(buffer) } }; // untested
+                let so_to_client = SoToClient::LoadResource {
+                    data: unsafe { transmute(buffer) },
+                }; // untested
                 println!("{so_to_client:?}");
 
                 // for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
@@ -217,18 +230,21 @@ impl GameServer {
                 // }
             }
 
-
             let returning_readers = Arc::new(AtomicBool::new(false));
             for (addr, mut read_half_for_this_id) in
                 self.clients_connections_read_halfs.lock().await.drain()
             {
                 let clients_events_buf_cloned = Arc::clone(&clients_events_buf);
                 let returning_readers_cloned = Arc::clone(&returning_readers);
-                let clients_connections_read_halfs_cloned = Arc::clone(&self.clients_connections_read_halfs);
+                let clients_connections_read_halfs_cloned =
+                    Arc::clone(&self.clients_connections_read_halfs);
                 tokio::spawn(async move {
                     loop {
                         if returning_readers_cloned.load(Ordering::Acquire) {
-                            clients_connections_read_halfs_cloned.lock().await.insert(addr, read_half_for_this_id);
+                            clients_connections_read_halfs_cloned
+                                .lock()
+                                .await
+                                .insert(addr, read_half_for_this_id);
                             break;
                         }
                         let mut exact_event_buf = [0; size_of::<ClientToServerEvent>()];
@@ -344,7 +360,9 @@ impl GameServer {
             }
 
             returning_readers.store(true, Ordering::Release);
-            while self.clients_connections_read_halfs.lock().await.len() != self.clients_connections_write_halfs.len() {
+            while self.clients_connections_read_halfs.lock().await.len()
+                != self.clients_connections_write_halfs.len()
+            {
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 

@@ -10,7 +10,8 @@ static void vector_realloc(vector_t *self)
 
 static void vector_append(vector_t *self, void *element, size_t element_size)
 {
-    while (self->engaged + element_size >= self->capacity) {
+    while (self->engaged + element_size >= self->capacity)
+    {
         vector_realloc(self);
     }
 

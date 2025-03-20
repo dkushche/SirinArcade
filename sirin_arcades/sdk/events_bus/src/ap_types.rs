@@ -55,9 +55,17 @@ pub enum SoToServerEvent {
 #[repr(C)]
 #[derive(Debug)]
 pub enum SoToClient {
-    DrawPixel { x: i32, y: i32, pixel_t: pixel_t_rust_t },
-    LoadResource { data: [c_char; 100] },
-    PlayResource { data: [c_char; 100] },
+    DrawPixel {
+        x: i32,
+        y: i32,
+        pixel_t: pixel_t_rust_t,
+    },
+    LoadResource {
+        data: [c_char; 100],
+    },
+    PlayResource {
+        data: [c_char; 100],
+    },
     CleanResources,
 }
 
@@ -99,10 +107,10 @@ impl SoToServerTransitBack {
     }
 }
 
-
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[repr(C)]
-pub struct pixel_t_rust_t { // always check if it is the same with c, conflicting types
+pub struct pixel_t_rust_t {
+    // always check if it is the same with c, conflicting types
     pub character: u8,
     pub color_pair_id: u8,
 }
