@@ -79,7 +79,8 @@ pixel_change_t *form_pixel_changes(double_buffered_frame_t *frame_buffer, size_t
     int cur_buffer_id = frame_buffer->active;
     int prev_buffer_id = frame_buffer->active == 0 ? 1 : 0;
 
-    vector_t *storage = vector_init();
+    vector_t storage;
+    vector_init(&storage);
 
     for (int i = 0; i < frame_buffer->height * frame_buffer->width; i++)
     {
@@ -91,19 +92,14 @@ pixel_change_t *form_pixel_changes(double_buffered_frame_t *frame_buffer, size_t
                                      .y = i / frame_buffer->width,
                                      .pixel = frame_buffer->buffers[cur_buffer_id][i]};
 
-            storage->append(storage, &change, sizeof(pixel_change_t));
+            storage.append(&storage, &change, sizeof(pixel_change_t));
         }
     }
 
     frame_buffer->active = prev_buffer_id;
     clear_frame_buffer(frame_buffer);
 
-    *changes_amount = storage->engaged / (sizeof(pixel_change_t));
+    *changes_amount = storage.engaged / (sizeof(pixel_change_t));
 
-    pixel_change_t *res = (pixel_change_t *)malloc(storage->engaged);
-    memcpy(res, storage->buffer, storage->engaged);
-
-    vector_deinit(storage);
-
-    return res;
+    return storage.buffer;
 }

@@ -18,7 +18,7 @@ typedef struct vector
     release_handler *release;
 } vector_t;
 
-vector_t *vector_init(void);
+int vector_init(vector_t *self);
 void vector_deinit(vector_t *self);
 
 #endif // VECTOR_H

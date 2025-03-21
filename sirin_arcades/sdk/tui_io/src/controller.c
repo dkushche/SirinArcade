@@ -8,28 +8,28 @@
 
 char *get_keys(void)
 {
-    static vector_t *vec = NULL;
+    static vector_t vec = {.buffer = NULL, .engaged = 0, .capacity = 0};
 
     size_t keys_array_length = 0;
     int ch;
 
-    if (vec == NULL)
+    if (vec.buffer == NULL)
     {
-        vec = vector_init();
+        vector_init(&vec);
     }
 
     while ((ch = getch()) != EOF)
     {
         if (ch == W || ch == A || ch == S || ch == D || ch == SPACE || ch == C)
         {
-            vec->append(vec, &ch, sizeof(char));
+            vec.append(&vec, &ch, sizeof(char));
         }
     }
 
     ch = END;
 
-    vec->append(vec, &ch, sizeof(char));
-    vec->release(vec);
+    vec.append(&vec, &ch, sizeof(char));
+    vec.release(&vec);
 
-    return vec->buffer;
+    return vec.buffer;
 }

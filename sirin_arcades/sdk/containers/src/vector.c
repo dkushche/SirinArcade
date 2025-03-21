@@ -25,23 +25,24 @@ static void vector_release(vector_t *self)
     self->engaged = 0;
 }
 
-vector_t *vector_init(void)
+int vector_init(vector_t *self)
 {
-    vector_t *res = (vector_t *)malloc(sizeof(vector_t));
+    if (self == NULL)
+    {
+        return -1;
+    }
+    self->capacity = 10;
+    self->engaged = 0;
 
-    res->capacity = 10;
-    res->engaged = 0;
+    self->buffer = malloc(self->capacity);
 
-    res->buffer = malloc(res->capacity);
+    self->append = vector_append;
+    self->release = vector_release;
 
-    res->append = vector_append;
-    res->release = vector_release;
-
-    return res;
+    return 0;
 }
 
 void vector_deinit(vector_t *self)
 {
     free(self->buffer);
-    free(self);
 }
