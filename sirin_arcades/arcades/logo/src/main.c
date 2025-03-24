@@ -127,7 +127,6 @@ static void add_random_logo_pixels_changes(vector_t *vec, size_t count, int *ite
 
 SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_t length)
 {
-    // todo vector reusage
     static vector_t vec = {.buffer = NULL, .engaged = 0, .capacity = 0};
     static int iteration = 0;
 
