@@ -5,28 +5,27 @@
 
 #include <events_bus.h>
 
-
 SoToServerTransitBack *global_array = NULL;
 size_t global_array_capacity = 0;
 size_t global_array_length = 0;
 
-void add_to_array(SoToServerTransitBack *element) {
+void add_to_array(SoToServerTransitBack *element)
+{
     if (global_array == NULL)
     {
         global_array_capacity = 10;
 
-        global_array = (SoToServerTransitBack *)malloc(
-            global_array_capacity * sizeof(SoToServerTransitBack)
-        );
+        global_array =
+            (SoToServerTransitBack *)malloc(global_array_capacity * sizeof(SoToServerTransitBack));
     }
 
     if (global_array_length == global_array_capacity)
     {
         global_array_capacity = global_array_capacity * 2;
 
-        global_array = (SoToServerTransitBack *)realloc(
-            global_array, global_array_capacity * sizeof(SoToServerTransitBack)
-        );
+        global_array =
+            (SoToServerTransitBack *)realloc(global_array,
+                                             global_array_capacity * sizeof(SoToServerTransitBack));
     }
 
     global_array[global_array_length] = *element;
@@ -49,8 +48,7 @@ void print_hex(const uint8_t *data, size_t length)
     printf("]\n");
 }
 
-SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
-                                      size_t length)
+SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_t length)
 {
     printf("so starting handling events\n");
     global_array_length = 0;
@@ -66,22 +64,25 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
 
         bool is_client_id = false;
 
-        for (size_t j = 0; j < SOCKET_ADDR_SIZE; j++) {
-            if (first_event[j].client_id[j] != 0) {
+        for (size_t j = 0; j < SOCKET_ADDR_SIZE; j++)
+        {
+            if (first_event[j].client_id[j] != 0)
+            {
                 is_client_id = true;
                 break;
             }
         }
 
-        if (is_client_id) {
-            ClientToServerEvent_Tag client_event_tag = first_event[i].underlying_event.client_event.tag;
+        if (is_client_id)
+        {
+            ClientToServerEvent_Tag client_event_tag =
+                first_event[i].underlying_event.client_event.tag;
 
-            switch (client_event_tag) {
+            switch (client_event_tag)
+            {
                 case PressedButton:
-                    printf(
-                        "got button %u\n",
-                        first_event[i].underlying_event.client_event.pressed_button.button
-                    );
+                    printf("got button %u\n",
+                           first_event[i].underlying_event.client_event.pressed_button.button);
                     break;
                 default:
                     printf("HERESY\n");
@@ -92,12 +93,11 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
         {
             ServerToSoEvent_Tag server_event_tag = first_event[i].underlying_event.server_event.tag;
 
-            switch (server_event_tag) {
+            switch (server_event_tag)
+            {
                 case NewConnectionId:
-                    printf(
-                        "got new connection id %u\n",
-                        first_event[i].underlying_event.server_event.new_connection_id.id
-                    );
+                    printf("got new connection id %u\n",
+                           first_event[i].underlying_event.server_event.new_connection_id.id);
                     break;
                 default:
                     printf("HERESY\n");
@@ -108,18 +108,11 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
 
     SoToServerTransitBack event_to_client = {
         .tag = ToClient,
-        .to_client = {
-            .tag = DrawPixel,
-            .draw_pixel = {
-                .x = 10,
-                .y = 15,
-                .pixel_t = {
-                    .character = (uint8_t)(48 + (rand() % 42)),
-                    .color_pair_id = 2
-                }
-            }
-        }
-    };
+        .to_client = {.tag = DrawPixel,
+                      .draw_pixel = {.x = 10,
+                                     .y = 15,
+                                     .pixel_t = {.character = (uint8_t)(48 + (rand() % 42)),
+                                                 .color_pair_id = 2}}}};
 
     add_to_array(&event_to_client);
     SoToServerTransitBackArray array = {

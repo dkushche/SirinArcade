@@ -8,27 +8,34 @@
 
 #define RESOURCE_DIR "/tmp/arcade_resources/"
 
-static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+static size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
     return fwrite(ptr, size, nmemb, stream);
 }
 
-int load_resource(char* resource_path_url) {
+int load_resource(char *resource_path_url)
+{
     mkdir(RESOURCE_DIR, 0777);
 
     char *filename = strrchr(resource_path_url, '/');
-    if (!filename) return -1;
+    if (!filename)
+    {
+        return -1;
+    }
     filename++;
 
     char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s%s", RESOURCE_DIR, filename);
 
     CURL *curl = curl_easy_init();
-    if (!curl) {
+    if (!curl)
+    {
         return -1;
     }
 
     FILE *file = fopen(filepath, "wb");
-    if (!file) {
+    if (!file)
+    {
         curl_easy_cleanup(curl);
         return -1;
     }
@@ -45,18 +52,21 @@ int load_resource(char* resource_path_url) {
     return (res == CURLE_OK) ? 0 : -1;
 }
 
-char* resolve_resource(char* resource_name) {
+char *resolve_resource(char *resource_name)
+{
     static char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s%s", RESOURCE_DIR, resource_name);
 
-    if (access(filepath, F_OK) == 0) {
+    if (access(filepath, F_OK) == 0)
+    {
         return filepath;
     }
 
     return NULL;
 }
 
-void clean_resources() {
+void clean_resources()
+{
     char command[128];
 
     snprintf(command, sizeof(command), "rm -rf %s", RESOURCE_DIR);

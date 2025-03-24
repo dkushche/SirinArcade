@@ -2,132 +2,165 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
+#include <vector.h>
 #include <events_bus.h>
 
+char logo[][96] = {
+#include "logo.txt"
+};
+const size_t logo_width = sizeof(logo[0]);
+const size_t logo_height = sizeof(logo) / logo_width;
+#define RANDOM_COLOR_PAIR 3
+#define NORMAL_COLOR_PAIR 0
 
-SoToServerTransitBack *global_array = NULL;
-size_t global_array_capacity = 0;
-size_t global_array_length = 0;
-
-void add_to_array(SoToServerTransitBack *element) {
-    if (global_array == NULL)
+void add_logo(vector_t *vec)
+{
+    for (size_t y = 0; y < logo_height; y++)
     {
-        global_array_capacity = 10;
-
-        global_array = (SoToServerTransitBack *)malloc(
-            global_array_capacity * sizeof(SoToServerTransitBack)
-        );
+        const char *line = logo[y];
+        for (size_t x = 0; line[x] != '\0'; x++)
+        {
+            if (line[x] != ' ')
+            {
+                SoToServerTransitBack event_to_client = {
+                    .tag = ToClient,
+                    .to_client = {.tag = DrawPixel,
+                                  .draw_pixel = {.x = x,
+                                                 .y = y,
+                                                 .pixel_t = {.character = (uint8_t)line[x],
+                                                             .color_pair_id = NORMAL_COLOR_PAIR}}}};
+                vec->append(vec, &event_to_client, sizeof(SoToServerTransitBack));
+            }
+        }
     }
-
-    if (global_array_length == global_array_capacity)
-    {
-        global_array_capacity = global_array_capacity * 2;
-
-        global_array = (SoToServerTransitBack *)realloc(
-            global_array, global_array_capacity * sizeof(SoToServerTransitBack)
-        );
-    }
-
-    global_array[global_array_length] = *element;
-    global_array_length = global_array_length + 1;
 }
 
-void print_hex(const uint8_t *data, size_t length)
+static bool is_special_char(const char c)
 {
-    printf("[\n");
-
-    for (size_t i = 0; i < length; i++)
-    {
-        printf("%02X", data[i]);
-        if (i < length - 1)
-        {
-            printf(", ");
-        }
-    }
-
-    printf("]\n");
+    return c == '-' || c == '=' || c == '+' || c == '#' || c == '@' || c == '*' || c == '%';
 }
 
-SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event,
-                                      size_t length)
+int gcd(int a, int b)
 {
-    printf("so starting handling events\n");
-    global_array_length = 0;
-    for (size_t i = 0; i < length; i++)
+    int temp;
+
+    while (b != 0)
     {
-        printf("Event %zu:\n", i);
-        printf("  client_id: ");
-        print_hex(first_event[i].client_id, SOCKET_ADDR_SIZE);
-        printf("\n");
+        temp = a % b;
 
-        // Дебаг інформація про underlying_event
-        print_server_to_so_transit_event(first_event + i);
+        a = b;
+        b = temp;
+    }
+    return a;
+}
 
-        bool is_client_id = false;
+int find_random_k(int n)
+{
+    srand(time(NULL));
+    int k;
+    do
+    {
+        k = rand() % n;
+    } while (k == 0 || gcd(k, n) != 1);
+    return k;
+}
 
-        for (size_t j = 0; j < SOCKET_ADDR_SIZE; j++) {
-            if (first_event[j].client_id[j] != 0) {
-                is_client_id = true;
-                break;
-            }
-        }
-
-        if (is_client_id) {
-            ClientToServerEvent_Tag client_event_tag = first_event[i].underlying_event.client_event.tag;
-
-            switch (client_event_tag) {
-                case PressedButton:
-                    printf(
-                        "got button %u\n",
-                        first_event[i].underlying_event.client_event.pressed_button.button
-                    );
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
-            }
-        }
-        else
+int get_next_victim()
+{
+    static int gcd_place = -1;
+    if (gcd_place == -1)
+    {
+        gcd_place = find_random_k(logo_height * logo_width);
+        if (gcd_place == -1)
         {
-            ServerToSoEvent_Tag server_event_tag = first_event[i].underlying_event.server_event.tag;
+            //
+            exit(0);
+        }
+    }
+    static int x = 0;
+    static int starting_num = 0; // value must be the same as in x variable
 
-            switch (server_event_tag) {
-                case NewConnectionId:
-                    printf(
-                        "got new connection id %u\n",
-                        first_event[i].underlying_event.server_event.new_connection_id.id
-                    );
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
-            }
+    int result = x;
+    x = (x + gcd_place) % (logo_height * logo_width);
+    if (x == starting_num)
+    {
+        return -1;
+    }
+
+    return result;
+}
+
+static void add_random_logo_pixels_changes(vector_t *vec, size_t count, int *iteration)
+{
+    for (size_t i = 0; i < count; i++)
+    {
+        size_t y, x;
+        char ch;
+
+        int victim = get_next_victim();
+        if (victim == -1)
+        {
+            *iteration = -1;
+            return;
+        }
+        y = victim / logo_width;
+        x = victim % logo_width;
+        ch = logo[y][x];
+        if (!is_special_char(ch))
+        {
+            i--;
+            continue;
+        }
+
+        SoToServerTransitBack event_to_client = {
+            .tag = ToClient,
+            .to_client = {
+                .tag = DrawPixel,
+                .draw_pixel = {.x = x,
+                               .y = y,
+                               .pixel_t = {.character = ch, .color_pair_id = RANDOM_COLOR_PAIR}}}};
+        vec->append(vec, &event_to_client, sizeof(SoToServerTransitBack));
+    }
+}
+
+SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_t length)
+{
+    static vector_t vec = {.buffer = NULL, .engaged = 0, .capacity = 0};
+    static int iteration = 0;
+
+    if (vec.buffer == NULL)
+    {
+        int result = vector_init(&vec);
+        if (result != NULL) {
+            printf("vector init error: %d", result);
+            exit(0);
+        }
+    }
+    vec.release(&vec);
+
+    if (iteration == 0)
+    {
+        add_logo(&vec);
+    }
+    else
+    {
+        add_random_logo_pixels_changes(&vec, 30, &iteration);
+        if (iteration == -1)
+        {
+            SoToServerTransitBack event_end = {
+                .tag = ToServer,
+                .to_server = {.tag = GoToState, .go_to_state = Menu}};
+            vec.append(&vec, &event_end, sizeof(SoToServerTransitBack));
         }
     }
 
-    SoToServerTransitBack event_to_client = {
-        .tag = ToClient,
-        .to_client = {
-            .tag = DrawPixel,
-            .draw_pixel = {
-                .x = 10,
-                .y = 15,
-                .pixel_t = {
-                    .character = (uint8_t)(48 + (rand() % 42)),
-                    .color_pair_id = 2
-                }
-            }
-        }
-    };
-
-    add_to_array(&event_to_client);
     SoToServerTransitBackArray array = {
-        .first_element = global_array,
-        .length = global_array_length,
+        .first_element = vec.buffer,
+        .length = vec.engaged / sizeof(SoToServerTransitBack),
     };
-    printf("so finished handling events\n");
 
-    sleep(1);
+    iteration++;
     return array;
 }

@@ -1,0 +1,56 @@
+Language: Cpp
+Standard: Auto
+
+BasedOnStyle:  Microsoft
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: Always
+  AfterCaseLabel: true
+  AfterFunction: true
+  IndentBraces: false
+  AfterStruct: true
+  BeforeElse: true
+  AfterEnum: true
+
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+
+AllowShortLoopsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: Never
+
+AlignAfterOpenBracket: Align
+
+BinPackArguments: false
+BinPackParameters: false
+
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+BreakStringLiterals: true
+BreakBeforeTernaryOperators: false
+
+IndentWidth: 4
+IndentCaseLabels: true
+IndentGotoLabels: false
+
+ColumnLimit: 100
+SortIncludes: false
+
+MaxEmptyLinesToKeep: 1
+
+InsertBraces: true
+InsertNewlineAtEOF: true
+InsertTrailingCommas: Wrapped
+
+PointerAlignment: Right
+
+SpaceBeforeCaseColon: false
+SpacesInContainerLiterals: true
+
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveAssignments: None

@@ -3,10 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef struct screen {
-    int32_t width;
-    int32_t height;
-} screen_t;
+#include <tui_io.h>
 
 static screen_t screen = {0, 0};
 
@@ -47,7 +44,7 @@ static void _disable_redundant_term_func()
 
 static int _init_colors()
 {
-    if(has_colors() == FALSE)
+    if (has_colors() == FALSE)
     {
         fprintf(stderr, "Your terminal does not support color\n");
         return -1;
@@ -67,7 +64,7 @@ static int _init_colors()
     return 0;
 }
 
-int tui_io_init(void)
+screen_t *tui_io_init(void)
 {
     initscr();
     nodelay(stdscr, TRUE);
@@ -83,11 +80,11 @@ int tui_io_init(void)
 
     getmaxyx(stdscr, screen.height, screen.width);
 
-    return 0;
+    return &screen;
 
 err:
     endwin();
-    return -1;
+    return NULL;
 }
 
 void tui_io_deinit(void)
