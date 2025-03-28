@@ -1,4 +1,4 @@
-use crate::State::{RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset};
+use crate::State::{PendingFirstPlayer, RunLobbySystemAsset, RunLogoSystemAsset, RunMenuSystemAsset};
 use events_bus::ap_types::{
     ClientToServerEvent, ServerToSoTransitEvent, ServerToSoTransitEventType, SoToClient,
     SoToServerEvent, SoToServerTransitBack, SoToServerTransitBackArray,
@@ -19,7 +19,7 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, UdpSocket};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 use tokio::time::{interval, sleep};
 use walkdir::WalkDir;
 
@@ -152,33 +152,30 @@ impl GameServer {
                 }
             });
 
-            let (tcp_stream, addr) = self.listener.accept().await.unwrap();
-            let (mut read_half, write_half) = tcp_stream.into_split();
+            loop {
+                let (tcp_stream, addr) = self.listener.accept().await.unwrap();
+                let (mut read_half, write_half) = tcp_stream.into_split();
 
-            let mut handshake_buf = [0u8; 1];
-            match read_half.read_exact(&mut handshake_buf).await {
-                Err(_) | Ok(0) => {
-                    panic!()
-                } // todo connection closed
-                Ok(_) => {
-                    if handshake_buf[0] != 0 {
-                        // todo handshake incorrect handling
-                        panic!()
+                let mut handshake_buf = [0u8; 1];
+                match read_half.read_exact(&mut handshake_buf).await {
+                    Err(_) | Ok(0) => {} // connection closed
+                    Ok(_) => {
+                        if handshake_buf[0] == 0 {
+                            self.clients_connections_read_halfs
+                                .lock()
+                                .await
+                                .insert(addr, read_half);
+                            self.clients_connections_write_halfs
+                                .insert(addr, write_half);
+
+                            self.state = RunLogoSystemAsset;
+
+                            udp_client_thread_join_handle.abort();
+                            return Ok(());
+                        }
                     }
                 }
             }
-
-            self.clients_connections_read_halfs
-                .lock()
-                .await
-                .insert(addr, read_half);
-            self.clients_connections_write_halfs
-                .insert(addr, write_half);
-
-            self.state = RunLogoSystemAsset;
-
-            udp_client_thread_join_handle.abort();
-            Ok(())
         } else {
             Err(StateError::OtherStateRequired)
         }
@@ -208,7 +205,7 @@ impl GameServer {
                     }
                 }
                 //base end example http://127.0.0.1:5589/logo/resources/intro.wav
-                println!("{}", base_end); // todo somehow get data, write to array and send to users ;/
+                println!("{}", base_end);
 
                 if base_end.len() > 99 {
                     // because LoadResource data is 100 bytes array
@@ -223,14 +220,16 @@ impl GameServer {
                 }; // untested
                 println!("{so_to_client:?}");
 
-                // for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                //     // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                //     unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
-                //     println!("sent so to client ");
-                // }
+                // todo send to users
+                for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                    // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
+                    unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
+                    // println!("sent so to client ");
+                }
             }
 
             let returning_readers = Arc::new(AtomicBool::new(false));
+            let stop_notify = Arc::new(Notify::new());
             for (addr, mut read_half_for_this_id) in
                 self.clients_connections_read_halfs.lock().await.drain()
             {
@@ -238,59 +237,70 @@ impl GameServer {
                 let returning_readers_cloned = Arc::clone(&returning_readers);
                 let clients_connections_read_halfs_cloned =
                     Arc::clone(&self.clients_connections_read_halfs);
+                let notify_clone = Arc::clone(&stop_notify);
                 tokio::spawn(async move {
                     loop {
-                        if returning_readers_cloned.load(Ordering::Acquire) {
+                        if returning_readers_cloned.load(Ordering::SeqCst) {
                             clients_connections_read_halfs_cloned
                                 .lock()
                                 .await
                                 .insert(addr, read_half_for_this_id);
+                            print!("yeah water returned");
                             break;
                         }
                         let mut exact_event_buf = [0; size_of::<ClientToServerEvent>()];
-                        match read_half_for_this_id.read_exact(&mut exact_event_buf).await {
-                            Ok(_) => {
-                                let client_to_server_event = unsafe {
-                                    (exact_event_buf.as_ptr() as *const ClientToServerEvent)
-                                        .as_ref()
-                                        .unwrap()
-                                };
-                                //println!("got event from {}: {:?} ", id, client_to_server_event);
-
-                                let mut extended = [0u8; 32];
-
-                                match &addr {
-                                    SocketAddr::V4(v4) => {
-                                        extended[..4].copy_from_slice(&v4.ip().octets());
-                                        extended[16..18].copy_from_slice(&v4.port().to_be_bytes());
-                                    }
-                                    SocketAddr::V6(v6) => {
-                                        extended[..16].copy_from_slice(&v6.ip().octets());
-                                        extended[16..18].copy_from_slice(&v6.port().to_be_bytes());
-                                    }
-                                }
-                                clients_events_buf_cloned.lock().await.push(
-                                    ServerToSoTransitEvent {
-                                        client_id: extended,
-                                        underlying_event: ServerToSoTransitEventType {
-                                            client_event: *client_to_server_event,
-                                        },
-                                    },
-                                );
+                        tokio::select! {
+                            _ = notify_clone.notified() => {
+                                continue;
                             }
-                            _ => {
-                                // todo вбити асінк таску та перейти в минулий стейт?
-                                panic!("eof"); // including connection closing
-                            } // "operation encounters an "end of file" before completely filling the buffer"
+                            read_exact_res = read_half_for_this_id.read_exact(&mut exact_event_buf) => {
+                                match read_exact_res {
+                                    Ok(_) => {
+                                        let client_to_server_event = unsafe {
+                                            (exact_event_buf.as_ptr() as *const ClientToServerEvent)
+                                                .as_ref()
+                                                .unwrap()
+                                        };
+                                        //println!("got event from {}: {:?} ", id, client_to_server_event);
+
+                                        let mut extended = [0u8; 32];
+
+                                        match &addr {
+                                            SocketAddr::V4(v4) => {
+                                                extended[..4].copy_from_slice(&v4.ip().octets());
+                                                extended[16..18].copy_from_slice(&v4.port().to_be_bytes());
+                                            }
+                                            SocketAddr::V6(v6) => {
+                                                extended[..16].copy_from_slice(&v6.ip().octets());
+                                                extended[16..18].copy_from_slice(&v6.port().to_be_bytes());
+                                            }
+                                        }
+                                        clients_events_buf_cloned.lock().await.push(
+                                            ServerToSoTransitEvent {
+                                                client_id: extended,
+                                                underlying_event: ServerToSoTransitEventType {
+                                                    client_event: *client_to_server_event,
+                                                },
+                                            },
+                                        );
+                                    }
+                                    _ => {
+                                        // todo вбити асінк таску та перейти в минулий стейт?
+                                        returning_readers_cloned.store(true, Ordering::SeqCst);
+                                    } // "operation encounters an "end of file" before completely filling the buffer". including connection closing
+                                }
+                            }
                         }
                     }
+                    println!(" to the well");
                 });
             }
 
             let mut so_to_server_transit_events = None;
             let interval_duration = Duration::from_secs_f64(1.0 / FRAME_RATE_PER_SEC as f64);
             let mut interval = interval(interval_duration);
-            loop {
+            'a: loop {
+                // todo? перевірка returning_readers
                 interval.tick().await;
                 let result = {
                     let copy = {
@@ -321,19 +331,22 @@ impl GameServer {
                                 // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
                                 // write_sotoclient!(write_conn, so_to_client);
                                 unsafe {
-                                    write_conn
+                                    if let Err(_) = write_conn
                                         .write_all(std::slice::from_raw_parts(
                                             so_to_client as *const _ as *const u8,
                                             std::mem::size_of::<SoToClient>(),
                                         ))
-                                        .await
-                                        .unwrap();
+                                        .await {
+                                        returning_readers.store(true, Ordering::SeqCst);
+
+                                        break 'a;
+                                    }
                                 }
                             }
                         }
                         SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
                             // idk
-                            unimplemented!("To state ")
+                            break 'a;
                         }
                         _ => {
                             panic!("you are punished");
@@ -343,33 +356,50 @@ impl GameServer {
                 println!("transit so -> client ended");
             }
 
-            let so_to_client = SoToClient::CleanResources;
-            for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                // write_sotoclient!(write_conn, so_to_client);
-                unsafe {
-                    write_conn
-                        .write_all(std::slice::from_raw_parts(
-                            &so_to_client as *const _ as *const u8,
-                            std::mem::size_of::<SoToClient>(),
-                        ))
-                        .await
-                        .unwrap();
+            if returning_readers.load(Ordering::SeqCst) {
+                self.state = PendingFirstPlayer;
+                // maybe just kill any connection
+
+                // todo clean up clients_connections_read_halfs and clients_connections_write_halfs ?
+                // free(so_to_server_transit_events.unwrap() as *mut c_void); ?
+                // cleaning client resources?
+
+
+                //  todo consider same treatment as in else arm
+                // part of treatment:
+                stop_notify.notify_waiters();
+                // Ok(())
+            } else {
+                self.state = RunMenuSystemAsset;
+
+                let so_to_client = SoToClient::CleanResources;
+                for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
+                    // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
+                    // write_sotoclient!(write_conn, so_to_client);
+                    unsafe {
+                        let _ = write_conn
+                            .write_all(std::slice::from_raw_parts(
+                                &so_to_client as *const _ as *const u8,
+                                std::mem::size_of::<SoToClient>(),
+                            ))
+                            .await;
+                    }
+                    // println!("sent so to client ");
                 }
-                // println!("sent so to client ");
-            }
 
-            returning_readers.store(true, Ordering::Release);
-            while self.clients_connections_read_halfs.lock().await.len()
-                != self.clients_connections_write_halfs.len()
-            {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-            }
+                returning_readers.store(true, Ordering::SeqCst);
+                while self.clients_connections_read_halfs.lock().await.len()
+                    != self.clients_connections_write_halfs.len()
+                {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    println!("still waiting {} {}", self.clients_connections_read_halfs.lock().await.len(), self.clients_connections_write_halfs.len());
+                    stop_notify.notify_waiters();
+                }
 
-            unsafe {
-                free(so_to_server_transit_events.unwrap() as *mut c_void);
+                unsafe {
+                    free(so_to_server_transit_events.unwrap() as *mut c_void);
+                }
             }
-            self.state = RunMenuSystemAsset;
             Ok(())
         } else {
             Err(StateError::OtherStateRequired)
@@ -378,7 +408,7 @@ impl GameServer {
 
     async fn handle_run_menu_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunMenuSystemAsset = &self.state {
-            todo!();
+            unimplemented!("run menu is unimplemented");
             self.state = RunLobbySystemAsset;
         } else {
             Err(StateError::OtherStateRequired)
