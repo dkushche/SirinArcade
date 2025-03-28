@@ -20,7 +20,7 @@ int load_resource(char *resource_path_url)
     char *filename = strrchr(resource_path_url, '/');
     if (!filename)
     {
-        return -1;
+        return -2;
     }
     filename++;
 
@@ -30,14 +30,14 @@ int load_resource(char *resource_path_url)
     CURL *curl = curl_easy_init();
     if (!curl)
     {
-        return -1;
+        return -3;
     }
 
     FILE *file = fopen(filepath, "wb");
     if (!file)
     {
         curl_easy_cleanup(curl);
-        return -1;
+        return -4;
     }
 
     curl_easy_setopt(curl, CURLOPT_URL, resource_path_url);
@@ -45,6 +45,9 @@ int load_resource(char *resource_path_url)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
 
     CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    }
 
     fclose(file);
     curl_easy_cleanup(curl);
