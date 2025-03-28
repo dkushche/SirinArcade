@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 
@@ -143,6 +144,11 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_
     if (iteration == 0)
     {
         add_logo(&vec);
+	    SoToServerTransitBack event_end = {
+            .tag = ToClient,
+            .to_client = {.tag = PlayResource}};
+		snprintf(event_end.to_client.play_resource.data, sizeof(event_end.to_client.play_resource.data), "intro.wav");
+        vec.append(&vec, &event_end, sizeof(SoToServerTransitBack));
     }
     else
     {
