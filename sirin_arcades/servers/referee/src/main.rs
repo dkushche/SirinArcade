@@ -217,13 +217,11 @@ impl GameServer {
                 buffer[..base_end.len()].copy_from_slice(base_end.as_bytes());
                 let so_to_client = SoToClient::LoadResource {
                     data: unsafe { transmute(buffer) },
-                }; // untested
+                };
                 println!("{so_to_client:?}");
 
-                // todo send to users
                 for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                    // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                    unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await.unwrap(); }
+                    unsafe { write_conn.write_all(std::slice::from_raw_parts(&so_to_client as *const SoToClient as *const u8, size_of::<SoToClient>())).await; }
                     // println!("sent so to client ");
                 }
             }
@@ -285,7 +283,6 @@ impl GameServer {
                                         );
                                     }
                                     _ => {
-                                        // todo вбити асінк таску та перейти в минулий стейт?
                                         returning_readers_cloned.store(true, Ordering::SeqCst);
                                     } // "operation encounters an "end of file" before completely filling the buffer". including connection closing
                                 }
@@ -300,7 +297,7 @@ impl GameServer {
             let interval_duration = Duration::from_secs_f64(1.0 / FRAME_RATE_PER_SEC as f64);
             let mut interval = interval(interval_duration);
             'a: loop {
-                // todo? перевірка returning_readers
+                // todo? check returning_readers
                 interval.tick().await;
                 let result = {
                     let copy = {
@@ -326,10 +323,8 @@ impl GameServer {
                             for (_addr, write_conn) in
                                 self.clients_connections_write_halfs.iter_mut()
                             {
-                                // можливе покращення: настворить тасок і почекати їх виконання(?) можливо навіть на кожен івент замість про на кожен конект
+                                // possible improvement: create async task per client
                                 println!("sent this event {:?}", so_to_client);
-                                // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                                // write_sotoclient!(write_conn, so_to_client);
                                 unsafe {
                                     if let Err(_) = write_conn
                                         .write_all(std::slice::from_raw_parts(
@@ -374,8 +369,6 @@ impl GameServer {
 
                 let so_to_client = SoToClient::CleanResources;
                 for (_addr, write_conn) in self.clients_connections_write_halfs.iter_mut() {
-                    // якщо коннект обірвався то unwrap може видать паніку broken pipe, треба обробка поведінки розриву конекту що під час read що під час write
-                    // write_sotoclient!(write_conn, so_to_client);
                     unsafe {
                         let _ = write_conn
                             .write_all(std::slice::from_raw_parts(
@@ -418,7 +411,7 @@ impl GameServer {
     async fn handle_run_lobby_system_asset(&mut self) -> Result<(), StateError> {
         if let State::RunLobbySystemAsset = &self.state {
             todo!()
-            //todo перестворити beacon з новим width;height;game_name
+            //todo recreate beacon with new width;height;game_name
         } else {
             Err(StateError::OtherStateRequired)
         }
