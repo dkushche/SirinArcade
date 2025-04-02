@@ -38,7 +38,7 @@ static bool receive_message(void *busclientconnection)
             {
                 fprintf(stderr,
                         "Program can not continue executing due to problem with playing resource "
-                        "not present on machine");
+                        "not present on machine\n");
                 return false;
             }
             play_wave(resolved_path, false, &sound); // not sure if it is the right usage

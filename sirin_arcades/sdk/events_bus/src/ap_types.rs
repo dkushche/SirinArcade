@@ -75,6 +75,9 @@ pub enum SoToServerTransitBack {
     ToServer(SoToServerEvent),
 }
 
+unsafe impl Send for SoToServerTransitBack {}
+unsafe impl Sync for SoToServerTransitBack {}
+
 #[repr(C)]
 pub struct SoToServerTransitBackArray {
     pub first_element: *const SoToServerTransitBack,
