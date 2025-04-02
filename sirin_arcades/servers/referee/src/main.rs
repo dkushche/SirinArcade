@@ -20,6 +20,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::{TcpListener, UdpSocket};
 use tokio::sync::{Mutex, Notify};
+use tokio::task::JoinSet;
 use tokio::time::{interval, sleep};
 use walkdir::WalkDir;
 
@@ -297,7 +298,10 @@ impl GameServer {
             let interval_duration = Duration::from_secs_f64(1.0 / FRAME_RATE_PER_SEC as f64);
             let mut interval = interval(interval_duration);
             'a: loop {
-                // todo? check returning_readers
+                if returning_readers.load(Ordering::SeqCst) {
+                    break 'a;
+                }
+
                 interval.tick().await;
                 let result = {
                     let copy = {
@@ -314,56 +318,85 @@ impl GameServer {
 
                 println!("beginning transit so -> client");
 
+                let mut set = JoinSet::new();
                 // important: there is a necessity to handle each event (for at least freeing possible pointers passed to server)
-                for event in
-                    unsafe { std::slice::from_raw_parts(result.first_element, result.length) }
+                for (addr, mut write_conn) in
+                    self.clients_connections_write_halfs.drain()
                 {
-                    match event {
-                        SoToServerTransitBack::ToClient(so_to_client) => {
-                            for (_addr, write_conn) in
-                                self.clients_connections_write_halfs.iter_mut()
-                            {
-                                // possible improvement: create async task per client
-                                println!("sent this event {:?}", so_to_client);
-                                unsafe {
-                                    if let Err(_) = write_conn
-                                        .write_all(std::slice::from_raw_parts(
-                                            so_to_client as *const _ as *const u8,
-                                            std::mem::size_of::<SoToClient>(),
-                                        ))
-                                        .await {
-                                        returning_readers.store(true, Ordering::SeqCst);
-
-                                        break 'a;
+                    let events = unsafe { std::slice::from_raw_parts(result.first_element, result.length) };
+                    let returning_readers = Arc::clone(&returning_readers);
+                    set.spawn(async move {
+                        let mut break_loop = false;
+                        let mut write_conn = write_conn;
+                        'task: for event in events
+                        {
+                            match event {
+                                SoToServerTransitBack::ToClient(so_to_client) => {
+                                    println!("sent this event {:?}", so_to_client);
+                                    unsafe {
+                                        if let Err(_) = write_conn
+                                            .write_all(std::slice::from_raw_parts(
+                                                so_to_client as *const _ as *const u8,
+                                                size_of::<SoToClient>(),
+                                            ))
+                                            .await {
+                                            returning_readers.store(true, Ordering::SeqCst);
+                                            break_loop = true;
+                                            break 'task;
+                                        }
                                     }
+                                }
+                                SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
+                                    break_loop = true;
+                                    break 'task;
+                                }
+                                _ => {
+                                    panic!("you are punished");
                                 }
                             }
                         }
-                        SoToServerTransitBack::ToServer(SoToServerEvent::GoToState(_state)) => {
-                            // idk
-                            break 'a;
-                        }
-                        _ => {
-                            panic!("you are punished");
+                        (break_loop, (addr, write_conn))
+                    });
+                }
+
+                let join_results = set.join_all().await;
+
+                let mut break_external_loop = false;
+                for (break_loop, (addr, write_half)) in join_results {
+                    match (break_loop, (addr, write_half)) {
+                        (break_loop, ((addr, write_half))) => {
+                            self.clients_connections_write_halfs.insert(addr, write_half);
+                            if break_loop {
+                                break_external_loop = true;
+                            }
                         }
                     }
                 }
+                if break_external_loop {
+                    break 'a;
+                }
+
                 println!("transit so -> client ended");
             }
 
             if returning_readers.load(Ordering::SeqCst) {
                 self.state = PendingFirstPlayer;
-                // maybe just kill any connection
 
-                // todo clean up clients_connections_read_halfs and clients_connections_write_halfs ?
-                // free(so_to_server_transit_events.unwrap() as *mut c_void); ?
-                // cleaning client resources?
+                // cleaning client resources in other than run logo functions
 
+                while self.clients_connections_read_halfs.lock().await.len()
+                    != self.clients_connections_write_halfs.len()
+                {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    stop_notify.notify_waiters();
+                }
 
-                //  todo consider same treatment as in else arm
-                // part of treatment:
-                stop_notify.notify_waiters();
-                // Ok(())
+                self.clients_connections_read_halfs.lock().await.clear();
+                self.clients_connections_write_halfs.clear();
+
+                unsafe {
+                    free(so_to_server_transit_events.unwrap() as *mut c_void);
+                }
             } else {
                 self.state = RunMenuSystemAsset;
 
