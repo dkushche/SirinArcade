@@ -1,10 +1,35 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <vector.h>
 #include <stdint.h>
 #include <graphic_backend.h>
+
+typedef enum {
+    SPRITE,
+    TEXT,
+} ElementVariation;
+
+typedef union {
+    struct {
+        int32_t x_limit;
+        int32_t y_limit;
+    } sprite_data;
+    struct {
+        bool centered;
+        uint32_t char_limit;
+    } text_data;
+} ElementData;
+
+typedef struct {
+    int32_t x;
+    int32_t y;
+    char *path_or_text;
+    ElementVariation state;
+    ElementData data;
+} Element;
 
 static void clear_frame_buffer(double_buffered_frame_t *frame_buffer)
 {
