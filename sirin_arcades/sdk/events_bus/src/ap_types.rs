@@ -67,6 +67,7 @@ pub enum SoToClient {
         data: [c_char; 100],
     },
     CleanResources,
+    // todo end frame
 }
 
 #[repr(C)]

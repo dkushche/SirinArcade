@@ -2,125 +2,104 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 
+#include <vector.h>
 #include <events_bus.h>
 
-SoToServerTransitBack *global_array = NULL;
-size_t global_array_capacity = 0;
-size_t global_array_length = 0;
+typedef struct game_internal {
+	char *so_path;
+    char *name;
+    char *resources_path;
+} game_internal_t;
 
-void add_to_array(SoToServerTransitBack *element)
-{
-    if (global_array == NULL)
-    {
-        global_array_capacity = 10;
-
-        global_array =
-            (SoToServerTransitBack *)malloc(global_array_capacity * sizeof(SoToServerTransitBack));
-    }
-
-    if (global_array_length == global_array_capacity)
-    {
-        global_array_capacity = global_array_capacity * 2;
-
-        global_array =
-            (SoToServerTransitBack *)realloc(global_array,
-                                             global_array_capacity * sizeof(SoToServerTransitBack));
-    }
-
-    global_array[global_array_length] = *element;
-    global_array_length = global_array_length + 1;
-}
-
-void print_hex(const uint8_t *data, size_t length)
-{
-    printf("[\n");
-
-    for (size_t i = 0; i < length; i++)
-    {
-        printf("%02X", data[i]);
-        if (i < length - 1)
-        {
-            printf(", ");
-        }
-    }
-
-    printf("]\n");
-}
+const char ARCADE_RESOURCES_PATH[] = "/etc/sirin_arcades/arcades_resources/";
 
 SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_t length)
 {
-    printf("so starting handling events\n");
-    global_array_length = 0;
-    for (size_t i = 0; i < length; i++)
+    fprintf(stderr, "so starting handling events\n");
+
+    static vector_t vec = {.buffer = NULL, .engaged = 0, .capacity = 0};
+    static int iteration = 0;
+
+    if (vec.buffer == NULL)
     {
-        printf("Event %zu:\n", i);
-        printf("  client_id: ");
-        print_hex(first_event[i].client_id, SOCKET_ADDR_SIZE);
-        printf("\n");
+        int result = vector_init(&vec);
+        if (result != NULL) {
+            fprintf(stderr, "vector init error: %d\n", result);
+            exit(0);
+        }
+    }
+    vec.release(&vec);
 
-        // Дебаг інформація про underlying_event
-        print_server_to_so_transit_event(first_event + i);
+    if (iteration == 0)
+    {
+        // запрінтити назви сошок обрізані крім системних
+        struct dirent *entry;
+        DIR *dp;
 
-        bool is_client_id = false;
-
-        for (size_t j = 0; j < SOCKET_ADDR_SIZE; j++)
-        {
-            if (first_event[j].client_id[j] != 0)
-            {
-                is_client_id = true;
-                break;
-            }
+        dp = opendir("/sirin_arcades/out/etc/sirin_arcades/arcades"); //todo
+        if (dp == NULL) {
+            fprintf(stderr, "opend\n");
         }
 
-        if (is_client_id)
-        {
-            ClientToServerEvent_Tag client_event_tag =
-                first_event[i].underlying_event.client_event.tag;
-
-            switch (client_event_tag)
-            {
-                case PressedButton:
-                    printf("got button %u\n",
-                           first_event[i].underlying_event.client_event.pressed_button.button);
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
+        while ((entry = readdir(dp)) != NULL) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0
+                || strcmp(entry->d_name, "liblobby_arcade.so") == 0 || strcmp(entry->d_name, "liblogo_arcade.so") == 0 || strcmp(entry->d_name, "libmenu_arcade.so") == 0) {
+                continue;
             }
+
+            // todo check lib*_arcade.so?
+            int name_len = strlen(entry->d_name) - 13;
+
+            game_internal_t game = {
+                .so_path = malloc(strlen(entry->d_name) + 1),
+                .name = malloc(name_len + 1),
+                .resources_path = malloc(name_len + sizeof(ARCADE_RESOURCES_PATH)),// /etc/sirin_arcades/arcades_resources/ + name
+            };
+
+//          if (game.so_path == NULL) { // etc etc
+//        		exit(0);
+//    		}
+			strcpy(game.so_path, entry->d_name);
+
+            memcpy(game.name, entry->d_name + 3, name_len);
+            game.name[name_len] = '\0';
+
+            strcpy(game.resources_path, ARCADE_RESOURCES_PATH);
+            strcpy(game.resources_path + sizeof(ARCADE_RESOURCES_PATH) - 1, game.name);
+
+            fprintf(stderr, "sopath %s\nname %s\nresources_path %s\n", game.so_path, game.name, game.resources_path);
+            // game {
+            //  so_path: libpong_arcade.so,
+            //  name: pong
+            //  resources_path: /etc/sirin_arcades/arcades_resources/pong
+            // }
+
+            //free everything in game
         }
-        else
-        {
-            ServerToSoEvent_Tag server_event_tag = first_event[i].underlying_event.server_event.tag;
 
-            switch (server_event_tag)
-            {
-                case NewConnectionId:
-                    printf("got new connection id %u\n",
-                           first_event[i].underlying_event.server_event.new_connection_id.id);
-                    break;
-                default:
-                    printf("HERESY\n");
-                    break;
-            }
+        closedir(dp);
+    }
+    else
+    {
+        if (iteration == -1)
+        {
+//            SoToServerTransitBack event_end = {
+//                .tag = ToServer,
+//                .to_server = {.tag = GoToState, .go_to_state = Menu}};
+//            vec.append(&vec, &event_end, sizeof(SoToServerTransitBack));
         }
     }
 
-    SoToServerTransitBack event_to_client = {
-        .tag = ToClient,
-        .to_client = {.tag = DrawPixel,
-                      .draw_pixel = {.x = 10,
-                                     .y = 15,
-                                     .pixel_t = {.character = (uint8_t)(48 + (rand() % 42)),
-                                                 .color_pair_id = 2}}}};
-
-    add_to_array(&event_to_client);
     SoToServerTransitBackArray array = {
-        .first_element = global_array,
-        .length = global_array_length,
+        .first_element = vec.buffer,
+        .length = vec.engaged / sizeof(SoToServerTransitBack),
     };
-    printf("so finished handling events\n");
 
-    sleep(1);
+    fprintf(stderr, "so finished handling events\n");
+
+    iteration++;
     return array;
 }

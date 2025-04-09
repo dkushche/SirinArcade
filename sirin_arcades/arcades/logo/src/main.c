@@ -135,7 +135,7 @@ SoToServerTransitBackArray game_frame(ServerToSoTransitEvent *first_event, size_
     {
         int result = vector_init(&vec);
         if (result != NULL) {
-            printf("vector init error: %d", result);
+            fprintf(stderr, "vector init error: %d", result);
             exit(0);
         }
     }
